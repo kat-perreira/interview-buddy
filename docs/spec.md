@@ -25,7 +25,7 @@ Software engineers pursuing mid- to senior-level roles who need interactive prac
 - Persisting transcripts (session lives in memory only; a refresh ends it)
 
 ## Rubric Dimensions
-TODO: list the dimensions from rubric.md here in one line, so this spec is readable without opening that file.
+Requirements and scoping, high-level design, data and APIs, scaling/reliability/bottlenecks, tradeoffs and decisions, communication and structure. Rated 1-4 (3 is the bar), or “not observed.” Details in rubric.md.
 
 ## Interviewer Behavior
 Full details live in persona.md. The spec requires that the interviewer:
