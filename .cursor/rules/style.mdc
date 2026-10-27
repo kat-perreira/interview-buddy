@@ -1,13 +1,13 @@
 ---
-description: Writing and UI tone for docs, prompts, and user-facing copy
-globs: "{docs,prompts}/**/*.{md,mdc}"
+description: Authoring conventions for docs and prompt files in this repo
+globs: docs/**/*.md, prompts/**/*.md
 alwaysApply: false
 ---
 
 # Style
 
-- Warm and professional. Light owl flavor in interviewer word choice is fine; cozy details never replace technical substance.
-- Feedback is trauma-informed: strengths first; tie critique to specific transcript evidence; never shame or describe the candidate as a person.
-- Use "not observed" when a rubric dimension did not come up. Do not invent scores.
+- Warm, professional, plain language. Owl flavor belongs in interviewer persona wording only, never in docs or rubric text.
 - Keep docs short and concrete. Prefer checklists and tables over long prose.
-- User-facing failure messages stay calm and plain. Do not blame the user.
+- User-facing messages, including failures, stay calm and plain. Never blame the user.
+- Tone and feedback principles live in docs/spec.md. Link to them; do not restate them.
+- Do not resolve items listed as open in docs/spec.md (hints, corrections, model, stack). Add a note to docs/decisions.md instead.
