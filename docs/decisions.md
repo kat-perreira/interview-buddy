@@ -20,6 +20,12 @@ Short log of why we chose X. Newest last.
 
 **Why:** Practice should stay an interview, not a tutorial, without stranding someone who is stuck. Feedback is the place for teaching.
 
+## 2026-10-27 — editor tooling moves from Cursor to Claude Code
+
+**Choice:** Rules live in `.claude/rules/` (scoped with `paths:` frontmatter); `CLAUDE.md` imports `AGENTS.md`, which stays the single source of project instructions. `.cursor/` removed.
+
+**Why:** Development moved to VS Code with the Claude Code extension; one copy of the rules avoids drift.
+
 ## Open (not decided)
 
 - Model and hosting (smallest that meets the quality bar)

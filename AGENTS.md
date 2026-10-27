@@ -26,7 +26,7 @@ Not chosen yet. Prefer the smallest model and simplest app stack that meets the 
 ## Code
 
 - Application code lives in `source/` (not `src/`, to avoid clashing with the parent folder's `src/`).
-- Editor rules in `.cursor/rules/` cover style and testing. Follow them rather than restating them here.
+- Editor rules in `.claude/rules/` cover style and testing. Follow them rather than restating them here.
 
 ## How to run
 

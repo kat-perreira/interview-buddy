@@ -1,7 +1,7 @@
 ---
-description: Authoring conventions for docs and prompt files in this repo
-globs: docs/**/*.md, prompts/**/*.md
-alwaysApply: false
+paths:
+  - "docs/**/*.md"
+  - "prompts/**/*.md"
 ---
 
 # Style

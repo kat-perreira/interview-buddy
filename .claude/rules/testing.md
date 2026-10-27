@@ -1,7 +1,7 @@
 ---
-description: How to verify session logic and interviewer behavior against the v1 spec
-globs: source/**, prompts/**
-alwaysApply: false
+paths:
+  - "source/**"
+  - "prompts/**"
 ---
 
 # Testing
