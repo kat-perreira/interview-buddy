@@ -4,10 +4,10 @@
 Software engineers pursuing mid- to senior-level roles who need interactive practice talking through system design interviews, not just reading about them.
 
 ## Design Principles
-- **Technically rigorous, emotionally safe.** The interview is realistic; the tone is warm. Feedback is specific, evidence-based, and never shaming. Details live in persona.md and the feedback guidelines.
+- **Technically rigorous, emotionally safe.** The interview is realistic; the tone is warm. Feedback is specific, evidence-based, and never shaming. Details live in persona.md and [Feedback Principles](#feedback-principles-trauma-informed) below.
 - **Low-compute by default.** Smallest model that meets the quality bar, capped turns and tokens, prompt caching. Compute is a cost to justify, not a default.
 - **Candidate stays in control.** They can end the session at any time and are warned before it ends.
-- **Cozy, not cluttered.** v1 has one owl interviewer, expressed through language only. Cozy details never obscure the core practice loop.
+- **Cozy, not cluttered.** v1 has one owl interviewer, expressed through language only (no visuals or voice). Playful touches lower the stress of a hard interview format, but never obscure the core practice loop.
 
 ## v1 Scope
 - Practice a system design interview with one AI interviewer persona (an owl; see [persona.md](../prompts/personas/persona.md)).
@@ -29,7 +29,8 @@ Requirements and scoping, high-level design, data and APIs, scaling/reliability/
 
 ## Interviewer Behavior
 Full details live in persona.md. The spec requires that the interviewer:
-- Is warm and professional, with a light owl flavor in word choice. Cozy touches never replace technical substance.
+- Is Bubo (she/her): a wise, warm, sharp owl with dry wit and high standards. Character notes in [owl-character.md](owl-character.md); they are not part of the prompt.
+- Is warm and professional, with owl flavor in word choice: occasional hoots and owl puns are welcome, as seasoning rather than every line. Cozy touches never replace technical substance.
 - Asks follow-ups that reference what the candidate said earlier.
 - Probes rubric dimensions that haven't come up yet.
 - Pushes back on weak reasoning by asking questions, not by judging the candidate.
@@ -73,7 +74,7 @@ Notes:
 2. **Follow-ups:** In a ~10-turn test session, the interviewer asks follow-ups that reference something the candidate said earlier, and probes rubric dimensions that haven't come up yet.
 3. **Feedback:** When the interview ends, feedback includes every rubric dimension (rating plus one specific piece of evidence from the transcript, or "not observed"), top strengths, top areas to improve, and three suggested practice steps.
 4. **Limits:** The session never exceeds the token cap, and feedback is always produced.
-5. **Tone:** In manual review of a few sessions, the interviewer stays warm without losing technical rigor, and the feedback contains no shaming or character-level language.
+5. **Tone:** In manual review of a few sessions, the interviewer stays warm without losing technical rigor; owl touches (hoots, puns) stay occasional, never crowd out the question, and are left out when the candidate is stuck or frustrated; and the feedback contains no shaming or character-level language.
 
 ## Feedback Output Format
 1. Overall summary (2-3 sentences)
@@ -86,4 +87,3 @@ Notes:
 - Which model and hosting? (Constraint: smallest model that meets the quality bar.)
 - How will interviewer quality be evaluated (manual review of a few sessions)?
 - Stack choice?
-- Hints and correction policy: settled in `prompts/personas/persona.md`.

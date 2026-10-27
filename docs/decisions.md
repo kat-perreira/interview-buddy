@@ -26,6 +26,18 @@ Short log of why we chose X. Newest last.
 
 **Why:** Development moved to VS Code with the Claude Code extension; one copy of the rules avoids drift.
 
+## 2026-10-27 — owl may hoot
+
+**Choice:** Occasional hoots and owl puns are allowed in the interviewer's wording. "Language only" means no visuals or voice, not no owl behavior.
+
+**Why:** System design rounds are stressful. A bit of whimsy makes practice feel safer without making it less rigorous. The limit is frequency: seasoning, not every line. Starting value in `persona.md`: at most one owl touch per reply, most replies none. Tune after manual sessions.
+
+## 2026-10-27 — interviewer is Bubo; backstory stays out of the prompt
+
+**Choice:** The owl is Bubo (she/her). Full character notes live in `docs/owl-character.md`; `persona.md` gets only traits that change what she says, plus example lines. Existing characters are not named anywhere in the repo; traits are described in our own words.
+
+**Why:** Every prompt token is sent each turn, and a long backstory dilutes the instructions that matter. Models tend to use whatever is in the prompt. Describing traits in our own words avoids borrowed catchphrases and keeps copyrighted characters out of the project.
+
 ## Open (not decided)
 
 - Model and hosting (smallest that meets the quality bar)

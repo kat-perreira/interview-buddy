@@ -20,6 +20,7 @@ Not chosen yet. Prefer the smallest model and simplest app stack that meets the 
 ## Prompts
 
 - Layout: persona in `prompts/personas/`, scenarios in `prompts/scenarios/`, rubric in `prompts/rubric.md`.
+- `docs/owl-character.md` is design notes for the persona. Never load it into a prompt or copy it into one; distill only behavior-changing traits into `persona.md`.
 - Shared rules (tone, safety, output format, feedback and scoring) live in one place each. Do not copy them into other files.
 - Behavior specific to one persona in one scenario is written inline on purpose, even if it echoes something elsewhere. Do not deduplicate it.
 - Tone: technically rigorous, emotionally safe. Strengths first; critique the transcript, not the person; use "not observed" instead of guessing. Canonical wording is in the spec's Feedback Principles.
