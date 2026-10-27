@@ -1,0 +1,16 @@
+---
+description: How to verify interview sessions against the v1 spec
+globs: "{source,tests,docs}/**/*"
+alwaysApply: false
+---
+
+# Testing
+
+Judge work against `docs/spec.md` success criteria, not against an idealized system-design answer.
+
+- Start: one click begins the interview; first message restates the notification service problem.
+- Follow-ups: interviewer references earlier candidate statements and probes missing rubric dimensions.
+- Feedback: every rubric dimension gets a rating plus evidence or "not observed"; include strengths, improvements, and three practice steps.
+- Limits: 12 candidate turns, warning at turn 10, token backstops, feedback always produced.
+- Tone: no shaming or character-level language in interviewer or feedback output.
+- Failure paths: interviewer retry-once then graceful end + feedback; failed feedback is retryable without restarting the interview.

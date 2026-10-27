@@ -1,0 +1,13 @@
+---
+description: Writing and UI tone for docs, prompts, and user-facing copy
+globs: "{docs,prompts}/**/*.{md,mdc}"
+alwaysApply: false
+---
+
+# Style
+
+- Warm and professional. Light owl flavor in interviewer word choice is fine; cozy details never replace technical substance.
+- Feedback is trauma-informed: strengths first; tie critique to specific transcript evidence; never shame or describe the candidate as a person.
+- Use "not observed" when a rubric dimension did not come up. Do not invent scores.
+- Keep docs short and concrete. Prefer checklists and tables over long prose.
+- User-facing failure messages stay calm and plain. Do not blame the user.
