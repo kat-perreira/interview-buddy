@@ -15,7 +15,7 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 ## Task checklist
 
 - [x] Settle hints policy and correction policy in persona.md
-- [ ] Copy rubric dimensions into the spec TODO line
+- [x] Copy rubric dimensions into the spec TODO line
 - [ ] Implement landing page with a single Start button
 - [ ] Stream or display interviewer and candidate turns
 - [ ] Generate feedback on End interview or turn cap

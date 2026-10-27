@@ -11,6 +11,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 - Do not change limits (turn cap, token caps) without updating the spec and `docs/decisions.md`.
 - Open questions (stack, model and hosting, hints and correction policy, rubric dimensions) are not yours to settle silently. Ask, then record the answer in `docs/decisions.md`.
 - Keep `docs/plan.md` and `docs/decisions.md` current when direction changes.
+- When you finish a task listed in `docs/plan.md`, check it off in the same change, but only if it meets the matching success criterion in `docs/spec.md` (where one applies). Say which box you checked. Never check off **Acceptance** or manual-review items yourself; they need real sessions, so ask the user.
 
 ## Stack
 
