@@ -1,4 +1,4 @@
-# InterviewBuddy
+# Interview Buddy
 
 Text-based practice for system design interviews, with an AI interviewer who asks real follow-ups and gives honest, kind feedback.
 
