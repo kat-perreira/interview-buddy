@@ -6,7 +6,15 @@ The only v1 problem. Two more scenarios are planned for v2.
 
 Design a notification service that can deliver **push, email, and SMS**.
 
-Start wherever you like. Clarifying questions are welcome.
+Start wherever you like. Clarifying questions are welcome. Thinking out loud is welcome too: a rough idea is a fine place to start.
+
+## Pacing (a loose guide, not a script)
+
+- **By about turn 3:** requirements and scope are mostly settled (who sends, which channels, rough scale).
+- **By about turn 8:** the core design is on the table (components, how a notification flows end to end, data model and APIs).
+- **After that:** deep dives into scaling, failure, and tradeoffs, then the wrap-up.
+
+Follow the candidate's order. Nudge only when one phase is running long, such as still scoping at turn 5. Engage with half-formed reasoning as it comes; don't wait for a polished answer.
 
 ## What "good" can include (do not read this list to the candidate)
 
