@@ -1,21 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Landing } from "./Landing.tsx";
 
-type ServerStatus = "checking" | "ok" | "unreachable";
+type Screen =
+  | { screen: "landing" }
+  | { screen: "session"; sessionId: string; opening: string };
 
-// Placeholder until the landing page task. Checks the /api proxy end to end.
 export function App() {
-  const [status, setStatus] = useState<ServerStatus>("checking");
+  const [view, setView] = useState<Screen>({ screen: "landing" });
 
-  useEffect(() => {
-    fetch("/api/health")
-      .then((res) => setStatus(res.ok ? "ok" : "unreachable"))
-      .catch(() => setStatus("unreachable"));
-  }, []);
+  if (view.screen === "landing") {
+    return (
+      <Landing onStarted={(sessionId, opening) => setView({ screen: "session", sessionId, opening })} />
+    );
+  }
 
+  // Stub session screen: shows Bubo's opening only. The "Display interviewer and
+  // candidate turns" task replaces it with the transcript and input.
   return (
     <main>
-      <h1>InterviewBuddy</h1>
-      <p>Server: {status}</p>
+      <p className="speaker">Bubo</p>
+      <p className="reply">{view.opening}</p>
     </main>
   );
 }

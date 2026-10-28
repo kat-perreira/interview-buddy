@@ -9,11 +9,11 @@ export const ERROR_MESSAGES = {
   interview_over: "This interview has already ended.",
   busy: "Bubo is still replying. Your message can go once she's done.",
   empty_message: "Type a message to send.",
-  too_long: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters. Try splitting this one up.`,
+  too_long: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters. Please try a shorter response.`,
 
   // Sent with a turn result when Bubo's reply failed twice and the interview ended.
   interviewer_failed:
-    "Something went wrong on our side, so the interview ends here. Your feedback is next, based on everything you said.",
+    "Something went wrong on our side, so the interview ends here. Your feedback is next, based on your responses.",
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_MESSAGES;

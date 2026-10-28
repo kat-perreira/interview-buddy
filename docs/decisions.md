@@ -128,6 +128,12 @@ Short log of why we chose X. Newest last.
 
 **Why:** The message is what the candidate actually said, so feedback can use it. An opening failure leaves nothing to grade. Ending must always work (spec, Session Rules). Console warnings are enough to track failures in a local proof of concept; monitoring comes later.
 
+## 2026-10-28 — landing page: one static ASCII owl
+
+**Choice:** The landing page shows a small ASCII owl above the title. It is a string constant in `source/client/owl.ts`, rendered as decorative text that screen readers skip. Nowhere else: no avatar, images, or animation, and inside the interview Bubo stays language-only. The spec's Non-Goals note this exception.
+
+**Why:** A cozy first impression at no cost: no assets, no dependencies, no model call. It fits the minimal black-and-monospace look. The line stays clear: one static owl on the page you start from, never a character on screen during the interview.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

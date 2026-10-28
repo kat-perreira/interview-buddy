@@ -1,0 +1,82 @@
+/* Minimal look: black background, light monospace text, one narrow column. */
+
+:root {
+  --bg: #000;
+  --text: #e6e6e6; /* ~17:1 on black */
+  --muted: #a0a0a0; /* ~8:1 on black */
+  --accent: #f2c14e; /* ~12:1 on black; also the focus ring */
+  --error: #ff8a80; /* ~9:1 on black */
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 4rem 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+ul {
+  color: var(--muted);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.owl {
+  color: var(--accent);
+  margin: 0 0 1.5rem;
+  line-height: 1.2;
+}
+
+button {
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  color: var(--muted);
+  background: transparent;
+  border-color: var(--muted);
+  cursor: progress;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.error {
+  color: var(--error);
+}
+
+.speaker {
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
+.reply {
+  white-space: pre-wrap;
+  margin-top: 0;
+}
