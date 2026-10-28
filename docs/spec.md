@@ -38,10 +38,17 @@ Full details live in persona.md. The spec requires that the interviewer:
 - Corrections: clarifying questions mid-interview if an error would derail the rest of the design; otherwise save corrections for feedback.
 
 ## Session Rules
+State diagram: [flow.md](flow.md).
+
 - **Start:** a single Start button launches the interview for the one scenario.
-- **End:** the user clicks "End interview," the session reaches the turn cap, or (as a backstop) the token check fails. Either way, feedback is generated.
-- **Warning:** the user is warned at turn 10 that the interview will end soon, or earlier if the token check shows the next turn is the last that fits.
-- **Turn cap:** the interviewer replies to the candidate's 12th turn, then the session closes and feedback is generated.
+- **End:** the user clicks "End interview" (and confirms), the session reaches the turn cap, a pause runs past the pause limit, or (as a backstop) the token check fails. Either way, feedback is generated.
+- **Pause:** available whenever the interviewer isn't mid-reply. The server records the pause. While paused, the transcript is hidden, input is disabled, and the check-in timer stops; the screen offers Resume and End interview. On pausing, the candidate is told the interview ends after 30 minutes paused and feedback will be ready when they're back. At 25 minutes a notice says it ends in 5 minutes. At 30 minutes it ends and feedback is generated. Pausing doesn't use turns or tokens. On resume, the check-in timer restarts.
+- **Turn count:** the server tells the interviewer the turn number ("Turn N of 12") on every call. The candidate never sees it in the UI; dev builds log it to the browser console.
+- **Warning:** the interviewer delivers it in her reply to turn 10, working it in naturally and steering toward a big-picture wrap-up. If the token check shows the next turn is the last that fits, she gets the final-turn instruction instead. The server adds these instructions to the call so the warning is not left to chance; whether the wording feels natural is a manual-review item.
+- **Turn cap:** the interviewer replies to the candidate's 12th turn and closes the interview warmly. The input locks and feedback starts automatically.
+- **Pause check-in:** if no message is sent for 5 minutes after the interviewer's reply, a small banner above the input offers a hint ("Stuck? You can ask Bubo for a hint anytime."). At 10 minutes, a second banner offers to move on ("Want to try a different part of the design? Just tell Bubo."). Then no more until the next message. Typing does not hold off the timer. Banners are fixed UI text: not a turn, no model call, not in the transcript. They never take focus, so voice dictation isn't interrupted.
+- **After feedback:** the full feedback shows on the same page, followed by a thank-you and a "Practice again" button.
+- **Leaving:** from Start until "Practice again," refreshing or closing the tab triggers the browser's own leave-page confirmation. A refresh ends the session.
 
 ## Limits (starting values, tune after real sessions)
 | Limit | Value |
@@ -52,6 +59,9 @@ Full details live in persona.md. The spec requires that the interviewer:
 | `max_tokens` for feedback call | 1,500 |
 | Hard session cap | 130k total tokens (input + output, thinking included), tracked from API usage |
 | Feedback reserve | 16k tokens. Before each interviewer call: tokens used + estimated cost of the call + reserve must be ≤ the cap, or the interview ends and feedback runs |
+| Pause check-ins | Banners at 5 and 10 minutes without a sent message, then none until the next message |
+| Pause limit | 30 minutes, with a notice at 25; then the interview ends and feedback runs |
+| Idle session expiry | 30 minutes after last activity (35 while paused, so the pause limit is reached first); the server drops the session |
 
 Notes:
 - With 12 capped turns, the turn limit will likely bind well before the token cap. The token cap is a backstop, not the expected limit.

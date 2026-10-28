@@ -75,6 +75,42 @@ Short log of why we chose X. Newest last.
 
 **Why:** Thinking counts against `max_tokens`. With thinking on, a 400-token reply could be cut short, or come back with no text at all. Interviewer replies are short conversational turns, so `low` effort fits. Feedback is more analytical, so it gets `medium`. If manual sessions show thin follow-ups or feedback, the first things to try are thinking back on (adaptive) with a higher `max_tokens`, or a higher effort level, before moving to Sonnet. The SDK retries twice by default, and stacking that under the spec's retry-once would turn one failure into up to six attempts.
 
+## 2026-10-28 — session store: 30-minute idle expiry, status-based shape
+
+**Choice:** Sessions expire 30 minutes after last activity (create, candidate turn, End interview, feedback request). Expiry is checked on every lookup, and a sweep every 60 seconds frees memory. No absolute max age. A session holds: ID, status (`active` → `feedback_pending` → `done`, with `feedback_failed` allowing feedback retry only), end reason, transcript, candidate turn count, tokens used, the previous call's input and output tokens (for the reserve estimate), a busy flag, and last-activity time. The turn-10 warning is computed, not stored. Feedback text is not stored.
+
+**Why:** The TTL only reclaims memory; a refresh already ends the session for the user, and a worst-case session is ~0.5 MB. 30 minutes covers reading feedback before a retry. It is not a thinking-time allowance; pause check-ins handle pacing. Checking expiry on lookup makes behavior independent of sweep timing and testable with an injected clock. The busy flag stops a double submit from interleaving two calls.
+
+## 2026-10-28 — interviewer delivers the warnings; turn count stays out of the UI
+
+**Choice:** The server sends "Turn N of 12" with every call. At turn 10 it adds an instruction to mention time is nearly up and steer toward a big-picture wrap-up; on the final turn (12, or the last the token check allows) it adds an instruction to close warmly. The candidate never sees the turn count; dev builds log it to the browser console.
+
+**Why:** A visible counter adds pressure that real interviews don't have. A real interviewer signals the end in conversation, and a natural "we're nearly out of time" is a lead-in to a wrap-up question. The instruction makes the warning reliable (the spec requires it) without spending a turn on it. Whether the wording feels natural is checked in manual review.
+
+## 2026-10-28 — pause check-ins are fixed UI banners
+
+**Choice:** Banners above the input at 5 and 10 minutes without a sent message: first offers a hint, second offers to move to another part of the design. Then none until the next message. Typing does not hold off the timer. Fixed text, no model call, not a turn, not in the transcript; banners never take focus.
+
+**Why:** Real interviewers don't let a silence run long, and the practice should train quick, regular responses rather than long research. Fixed text costs nothing and keeps the model out of it: a stressed candidate's tone during a pause can't pull Bubo off course. Typing doesn't reset the timer because a long dictation (fillers, self-corrections) is the spoken version of a long pause, and the nudge discourages very long messages. No focus steal so voice dictation isn't cut off. Starting values; adjust if two check-ins feel like nagging in practice.
+
+## 2026-10-28 — ending and leaving
+
+**Choice:** End interview asks for confirmation. After the final reply, input locks and feedback starts automatically. The full feedback shows on the same page, then a thank-you and "Practice again." From Start until "Practice again," refresh or tab close triggers the browser's built-in leave-page confirmation.
+
+**Why:** A stray click or refresh shouldn't cost a session. Browsers don't allow custom text or modals on refresh or close, so the built-in dialog is the only option there. The feedback screen is covered too, since closing it loses the feedback.
+
+## 2026-10-28 — pause button, server-aware, transcript hidden
+
+**Choice:** The candidate can pause whenever the interviewer isn't mid-reply. The server records `pausedAt`. While paused, the transcript is hidden, input is disabled, and the check-in timer stops. The pause limit is 30 minutes: stated when pausing, a notice at 25, and at 30 the interview ends (`paused_too_long`) and feedback runs. Paused sessions get a 35-minute idle expiry instead of 30.
+
+**Why:** Interruptions happen, and the candidate stays in control without having to end the session. The limit is stated up front because the candidate is likely away from the screen when the late notice appears. Hiding the transcript keeps a pause from becoming prep or research time, closer to a real interview. The server tracks the pause so it stays the source of truth (and so later versions can see it). The longer idle expiry stops the sweep from dropping a paused session before its auto end. Starting values; tune in manual stress tests.
+
+## 2026-10-28 — session flow diagram in the repo
+
+**Choice:** The session flow is a Mermaid state diagram in `docs/flow.md`, updated in the same change as any flow change.
+
+**Why:** Plain text, so it diffs with the code and agents can read and check against it; it still renders as a picture on GitHub and in VS Code.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews
