@@ -39,8 +39,8 @@ Full details live in persona.md. The spec requires that the interviewer:
 
 ## Session Rules
 - **Start:** a single Start button launches the interview for the one scenario.
-- **End:** the user clicks "End interview," or the session reaches the turn cap. Either way, feedback is generated.
-- **Warning:** the user is warned at turn 10 that the interview will end soon.
+- **End:** the user clicks "End interview," the session reaches the turn cap, or (as a backstop) the token check fails. Either way, feedback is generated.
+- **Warning:** the user is warned at turn 10 that the interview will end soon, or earlier if the token check shows the next turn is the last that fits.
 - **Turn cap:** the interviewer replies to the candidate's 12th turn, then the session closes and feedback is generated.
 
 ## Limits (starting values, tune after real sessions)
@@ -50,8 +50,8 @@ Full details live in persona.md. The spec requires that the interviewer:
 | Max candidate message length | ~2,000 characters (~500 tokens) |
 | `max_tokens` per interviewer reply | 400 |
 | `max_tokens` for feedback call | 1,500 |
-| Hard session cap | ~100k total tokens (input + output), tracked from API usage |
-| Feedback reserve | Interview ends early enough that the feedback call always fits |
+| Hard session cap | 130k total tokens (input + output, thinking included), tracked from API usage |
+| Feedback reserve | 16k tokens. Before each interviewer call: tokens used + estimated cost of the call + reserve must be ≤ the cap, or the interview ends and feedback runs |
 
 Notes:
 - With 12 capped turns, the turn limit will likely bind well before the token cap. The token cap is a backstop, not the expected limit.

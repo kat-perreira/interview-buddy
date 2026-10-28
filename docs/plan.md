@@ -17,8 +17,9 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Settle hints policy and correction policy in persona.md
 - [x] Copy rubric dimensions into the spec TODO line
 - [x] Scaffold `source/`: Vite + React client, Hono server, Vitest, dev proxy for `/api`
-- [ ] Model client interface plus a mock for tests
+- [x] Model client interface plus a mock for tests (includes `MODEL_CLIENT=mock` dev mode)
 - [ ] Server-held session store with TTL sweep
+- [ ] Pacing: send "Turn N of 12" with each interviewer call; add a loose pacing guide to the scenario (scoping by ~turn 3, core design by ~turn 8, then deep dives and wrap-up)
 - [ ] Tests for turn cap, turn-10 warning, message length, token cap with feedback reserve, and failure paths (before UI work)
 - [ ] Stream interviewer replies from Hono to the client
 - [ ] Implement landing page with a single Start button

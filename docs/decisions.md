@@ -58,6 +58,23 @@ Short log of why we chose X. Newest last.
 - No assistant prefill, and don't send `temperature`, `top_p`, or `top_k`; both return a 400.
 - Caches are per model, so switching to Sonnet starts with a cold cache.
 
+## 2026-10-28 — token cap 130k, feedback reserve 16k
+
+**Choice:** Hard session cap raised from 100k to 130k tokens. Feedback reserve is 16k. Before each interviewer call, the server checks `used + estimated call cost + reserve ≤ cap`; if it fails, the interview ends and feedback runs. Estimated call cost = previous call's input + previous reply + new message (characters ÷ 4) + 400. The candidate gets the "ending soon" warning when the check shows the next turn is the last that fits.
+
+**Why:** Each call resends the full history, so 12 max-length turns use ~100k before feedback (~116k with it). At 100k, thorough candidates would be cut off by tokens, not turns. At 130k the token cap is a true backstop. Worst-case feedback call: ~2k system prompt + ~11k transcript + 1.5k output ≈ 14.7k, rounded up to 16k. Checking before each call stops one large call from jumping past the reserve. The token-end warning keeps the "warned before it ends" rule; revisit once the full flow is visible. Worst-case cost stays under 2 cents a session on Haiku 5.5.
+
+## 2026-10-28 — model client: thinking off, explicit effort, no SDK retries, mock dev mode
+
+**Choice:**
+- Session code talks to a small `ModelClient` interface (`source/server/model/types.ts`), never to the SDK. Tests use a scripted mock that reports fake usage (thinking included) and can fail or refuse.
+- Haiku 5.5 runs with `thinking: {type: "disabled"}`. Effort is `low` for interviewer replies and `medium` for feedback. All of these are in `source/server/config.ts`.
+- SDK automatic retries are off (`maxRetries: 0`), and there's a 30-second timeout.
+- Prompt caching uses top-level automatic `cache_control`, so each call reads the cached system prompt and earlier turns.
+- `MODEL_CLIENT=mock` runs the app against the mock for free UI testing.
+
+**Why:** Thinking counts against `max_tokens`. With thinking on, a 400-token reply could be cut short, or come back with no text at all. Interviewer replies are short conversational turns, so `low` effort fits. Feedback is more analytical, so it gets `medium`. If manual sessions show thin follow-ups or feedback, the first things to try are thinking back on (adaptive) with a higher `max_tokens`, or a higher effort level, before moving to Sonnet. The SDK retries twice by default, and stacking that under the spec's retry-once would turn one failure into up to six attempts.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews
