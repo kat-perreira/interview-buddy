@@ -5,6 +5,8 @@ export const MODEL_ID = "claude-haiku-5-5";
 
 // The interview ends after Bubo replies to this many candidate messages.
 export const MAX_CANDIDATE_TURNS = 12;
+// Bubo's reply to this turn warns that the session is nearly up.
+export const WRAP_UP_TURN = 10;
 
 export const INTERVIEWER_MAX_TOKENS = 400;
 export const FEEDBACK_MAX_TOKENS = 1500;

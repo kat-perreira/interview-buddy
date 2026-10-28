@@ -10,7 +10,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 - The candidate can always end the session, and is warned before it ends.
 - Do not change limits (turn cap, token caps) without updating the spec and `docs/decisions.md`.
 - Open questions (how to evaluate interviewer quality) are not yours to settle silently. Ask, then record the answer in `docs/decisions.md`.
-- Keep `docs/plan.md` and `docs/decisions.md` current when direction changes. Keep `docs/flow.md` in step with any session flow change.
+- Keep `docs/plan.md` and `docs/decisions.md` current when direction changes. Keep `docs/flow.md` in step with any session flow change. Keep `docs/turn-requests.md` in step with `source/server/session/request.ts` and the marker rules in `persona.md`.
 - When you finish a task listed in `docs/plan.md`, check it off in the same change, but only if it meets the matching success criterion in `docs/spec.md` (where one applies). Say which box you checked. Never check off **Acceptance** or manual-review items yourself; they need real sessions, so ask the user.
 
 ## Stack

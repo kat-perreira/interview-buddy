@@ -42,10 +42,23 @@ Each path sets the session's `endReason`, then feedback runs.
 | Pause limit | `paused` | Stated on pause, notice at 25 minutes, interview ends at 30 |
 | Idle expiry | Any state | Server drops the session after 30 minutes idle (35 while paused) |
 
+## Turn behavior
+
+The server adds a turn note to every candidate message, with a marker on the turns below; the candidate never sees them. What Bubo does with each marker is written in `persona.md`; [turn-requests.md](turn-requests.md) shows how the two meet.
+
+| Call | Server adds | Bubo's reply |
+| --- | --- | --- |
+| Opening | Kickoff note | Introduces herself, restates the scenario, invites clarifying questions |
+| Turns 1-9 | `[Turn N of 12]` | Interviews, following the scenario's pacing guide |
+| Turn 10 | `[Turn 10 of 12]` and the wrap-up marker | Mentions the session is nearly up and steers to a big-picture wrap-up |
+| Turn 11 | `[Turn 11 of 12]` | Interviews as usual; the turn-10 wrap-up is already in the conversation |
+| Turn 12 | `[Turn 12 of 12]` and the final-turn marker | Closes warmly, asks nothing new; then input locks and feedback starts |
+| Early final turn (later) | The final-turn marker, when the token check shows this is the last turn that fits | Same as turn 12 |
+
 ## Inside a turn
 
 - `bubo_replying` is the session's `busy` flag. No sends, pause, or second call while it is set.
-- The server adds "Turn N of 12" to every call, plus the wrap-up instruction at turn 10 and the closing instruction on the final turn.
+- See [Turn behavior](#turn-behavior) for what the server adds to each call.
 - The transcript is hidden in `paused` and the input is locked in `bubo_replying` and `paused`.
 
 ## Leaving

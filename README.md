@@ -21,7 +21,7 @@ The occasional hoot or owl pun is allowed. It's seasoning, and she drops it when
 ## How a session works
 
 1. Click **Start**. Bubo introduces the problem: design a notification service (push, email, and SMS).
-2. Talk through your design for up to 12 turns. Around turn 10, Bubo lets you know time is nearly up and steers toward a wrap-up.
+2. Talk through your design for up to 12 turns. Around turn 10, Bubo lets you know the session is nearly up and steers toward a wrap-up.
 3. End the interview whenever you like, or reach the turn cap. You can also pause; the transcript hides until you resume.
 4. Get feedback on the same page: a summary, a rubric table, your strengths, areas to improve, and three concrete practice steps.
 

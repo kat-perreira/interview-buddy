@@ -111,6 +111,12 @@ Short log of why we chose X. Newest last.
 
 **Why:** Plain text, so it diffs with the code and agents can read and check against it; it still renders as a picture on GitHub and in VS Code.
 
+## 2026-10-28 — turn instructions: the persona owns the wording, the server sends markers
+
+**Choice:** At turn 10 and on the final turn, the server adds a short marker to that turn's note. Markers depend only on the turn number, so a marked message keeps its marker on every later call and the cached prefix still matches. `persona.md` says what Bubo does for each marker; the server holds no instruction wording. This refines "interviewer delivers the warnings" above. The early final turn from the token check is deferred until the token check is built. The wrap-up talks about the session ending, never about time, so a future time tracker can be added without changing how the session closes.
+
+**Why:** Behavior wording stays in one place, with the rest of the persona, in the cached system prompt. A marker also covers an early final turn, which the turn number alone can't signal. If manual sessions show Bubo drifting from a marker-only cue, move the instruction wording into the server request instead (manual review item).
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews
