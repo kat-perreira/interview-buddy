@@ -117,6 +117,17 @@ Short log of why we chose X. Newest last.
 
 **Why:** Behavior wording stays in one place, with the rest of the persona, in the cached system prompt. A marker also covers an early final turn, which the turn number alone can't signal. If manual sessions show Bubo drifting from a marker-only cue, move the instruction wording into the server request instead (manual review item).
 
+## 2026-10-28 — session routes: failed turns, failed openings, ending mid-reply
+
+**Choice:**
+- If Bubo's reply fails twice, the interview ends (`interviewer_failed`). The candidate's unanswered message stays in the transcript and counts as a turn.
+- If the opening reply fails twice, the session is discarded and the candidate sees a calm "please try again" with Start still available. No feedback runs.
+- End interview works even while Bubo is replying. The reply in progress is dropped; the candidate's last message stays.
+- Every failed interviewer call logs a console warning with the session ID, turn, attempt, and reason (error class, HTTP status, and request ID only, never message text). A reply cut off at `max_tokens` is kept and also logged.
+- If the candidate ends during a failed attempt, the retry is skipped.
+
+**Why:** The message is what the candidate actually said, so feedback can use it. An opening failure leaves nothing to grade. Ending must always work (spec, Session Rules). Console warnings are enough to track failures in a local proof of concept; monitoring comes later.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

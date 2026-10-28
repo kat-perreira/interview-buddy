@@ -33,6 +33,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 ## Code
 
 - Application code lives in `source/` (not `src/`, to avoid clashing with the parent folder's `src/`).
+- Every error and failure message the candidate can see lives in `source/shared/strings.ts`, used by both server and client. Add new ones there, not inline.
 - Editor rules in `.claude/rules/` cover style and testing. Follow them rather than restating them here.
 
 ## How to run
@@ -42,5 +43,6 @@ From `source/`, with Node 22+:
 - `npm install`, then copy `.env.example` to `.env` and add `ANTHROPIC_API_KEY`.
 - `npm run dev` starts the Hono server (port 8787) and Vite (port 5173). Open http://localhost:5173; Vite proxies `/api` to the server.
 - Set `MODEL_CLIENT=mock` in `.env` to click through the app without API calls. In mock mode, a candidate message containing `[mock:fail]` or `[mock:refuse]` triggers the failure paths.
+- Failed interviewer calls, and replies cut off at `max_tokens`, log a `[interviewer]` warning in the server console (no message text). In dev, editing a prompt file restarts the server, which ends any open session.
 - `npm test` runs Vitest once; `npm run test:watch` reruns on change. `npm run typecheck` runs `tsc`.
 - `npm run build && npm start` serves the built client and API from one process on port 8787.

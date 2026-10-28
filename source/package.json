@@ -2,7 +2,7 @@
   "name": "interview-buddy",
   "scripts": {
     "dev": "concurrently -n server,client \"npm:dev:server\" \"npm:dev:client\"",
-    "dev:server": "tsx watch --env-file-if-exists=.env server/index.ts",
+    "dev:server": "tsx watch --include \"../prompts/**/*.md\" --env-file-if-exists=.env server/index.ts",
     "dev:client": "vite",
     "build": "vite build",
     "start": "NODE_ENV=production tsx --env-file-if-exists=.env server/index.ts",

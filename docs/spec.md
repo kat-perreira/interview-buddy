@@ -68,7 +68,8 @@ Notes:
 - Backstops: set a monthly spend limit in the model provider dashboard; use prompt caching for the system prompt and rubric if available.
 
 ## Failure Handling
-- If an interviewer reply fails (API error or timeout), retry once. If it fails again, end the session gracefully and generate feedback from the transcript so far.
+- If an interviewer reply fails (API error, timeout, refusal, or empty reply), retry once. If it fails again, end the session gracefully and generate feedback from the transcript so far. The unanswered candidate message stays in the transcript and counts as a turn.
+- If the opening reply fails twice, discard the session and show a calm "please try again" with Start still available. There is nothing to grade, so no feedback runs.
 - If the feedback call fails, show a clear message and let the user retry the feedback call only, without restarting the interview.
 - Failure messages follow the same tone principles: calm, plain, and not blaming the user.
 

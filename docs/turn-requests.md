@@ -11,9 +11,11 @@ sequenceDiagram
     participant F as Prompt files
     participant M as Claude (Bubo)
 
-    Note over S,F: Once per session (Session routes task, not built yet)
+    Note over S,F: Once at server start (loadSystemPrompt)
     S->>F: read persona.md, scenario, rubric.md
     F-->>S: joined into one system prompt
+
+    Note over C,M: Start: the first call sends only the kickoff note
 
     Note over C,M: Every turn
     C->>S: "I think the fanout service would..."

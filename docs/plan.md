@@ -21,11 +21,11 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Server-held session store with TTL sweep
 - [x] Pacing: send "Turn N of 12" with each interviewer call; add a loose pacing guide to the scenario (scoping by ~turn 3, core design by ~turn 8, then deep dives and wrap-up; encourage thinking out loud over polished answers)
 - [x] Turn instructions: at turn 10, tell Bubo to mention the session is nearly up and steer to a big-picture wrap-up; on turn 12, tell her to close warmly (server sends markers, `persona.md` holds the wording; the early final turn from the token check comes with the token check)
-- [ ] Session routes: start a session, send a candidate turn, End interview; enforce the turn cap, busy flag, and message length; retry a failed interviewer call once, then end with `interviewer_failed` (full replies, no streaming yet)
+- [x] Session routes: start a session, send a candidate turn, End interview; enforce the turn cap, busy flag, and message length; retry a failed interviewer call once, then end with `interviewer_failed` (full replies, no streaming yet)
 - [ ] Tests for turn cap, turn-10 and final-turn instructions, message length, and failure paths (before UI work)
 - [ ] Implement landing page with a single Start button
 - [ ] Display interviewer and candidate turns (full replies; streaming comes later)
-- [ ] Generate feedback on End interview or turn cap
+- [ ] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens
 - [ ] Show a clear path to retry feedback if that call fails
 - [ ] Confirm before End interview; lock input and start feedback after the final reply
 - [ ] After feedback: thank-you and "Practice again"; browser leave-page warning from Start until then
@@ -33,7 +33,7 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
 
 - [ ] Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
-- [ ] Stream interviewer replies from Hono to the client
+- [ ] Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both
 - [ ] Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
 - [ ] Pause screen: hide transcript, disable input, stop check-in timer; Resume and End interview; limit stated on pause, notice at 25 minutes
 - [ ] Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)

@@ -6,6 +6,7 @@ How one practice session moves from Start to feedback. Rules and values live in 
 stateDiagram-v2
     [*] --> landing
     landing --> active: Start
+    active --> landing: opening fails twice
 
     state active {
         [*] --> bubo_replying: opening
@@ -28,11 +29,11 @@ Each path sets the session's `endReason`, then feedback runs.
 
 | `endReason` | Trigger |
 | --- | --- |
-| `candidate` | End interview, confirmed (available anywhere in `active`) |
+| `candidate` | End interview, confirmed (available anywhere in `active`; a reply in progress is dropped) |
 | `turn_cap` | Bubo's closing reply to turn 12 finishes |
 | `token_cap` | The token check before a call fails |
 | `paused_too_long` | 30 minutes in `paused` |
-| `interviewer_failed` | An interviewer call fails twice (error, timeout, or refusal) |
+| `interviewer_failed` | An interviewer call fails twice (error, timeout, refusal, or empty reply); the unanswered message stays and counts as a turn |
 
 ## Timers
 
