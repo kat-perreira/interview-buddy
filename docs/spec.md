@@ -84,6 +84,4 @@ Notes:
 5. 3 suggested practice steps
 
 ## Open Questions
-- Which model and hosting? (Constraint: smallest model that meets the quality bar.)
 - How will interviewer quality be evaluated (manual review of a few sessions)?
-- Stack choice?

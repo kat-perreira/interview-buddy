@@ -19,4 +19,6 @@ Judge work against the success criteria and limits in `docs/spec.md`, not agains
 - After editing a prompt, rerun a few manual sessions before treating the change as done.
 
 ## Commands
-- TODO: add run and test commands once the stack is chosen (open question in `docs/spec.md`).
+- Run from `source/`: `npm test` (Vitest, once), `npm run test:watch`, `npm run typecheck`.
+- Server tests call `app.request()` on the Hono app in `server/app.ts`; no listening server needed.
+- Tests sit next to the code they cover as `*.test.ts` / `*.test.tsx`.

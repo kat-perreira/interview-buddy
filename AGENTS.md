@@ -9,13 +9,18 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 - Do not persist transcripts. A session lives in memory and a refresh ends it.
 - The candidate can always end the session, and is warned before it ends.
 - Do not change limits (turn cap, token caps) without updating the spec and `docs/decisions.md`.
-- Open questions (stack, model and hosting, hints and correction policy, rubric dimensions) are not yours to settle silently. Ask, then record the answer in `docs/decisions.md`.
+- Open questions (how to evaluate interviewer quality) are not yours to settle silently. Ask, then record the answer in `docs/decisions.md`.
 - Keep `docs/plan.md` and `docs/decisions.md` current when direction changes.
 - When you finish a task listed in `docs/plan.md`, check it off in the same change, but only if it meets the matching success criterion in `docs/spec.md` (where one applies). Say which box you checked. Never check off **Acceptance** or manual-review items yourself; they need real sessions, so ask the user.
 
 ## Stack
 
-Not chosen yet. Prefer the smallest model and simplest app stack that meets the quality bar. Keep compute low everywhere: capped turns and tokens, prompt caching for the system prompt and rubric.
+- TypeScript throughout. Vite + React frontend; Hono server on Node.
+- The server holds the API key and calls the model. The browser never sees the key. Interviewer replies stream to the browser.
+- Sessions live in server memory, keyed by session ID, with a TTL sweep. The server enforces the turn cap, message length, and token cap. Nothing is written to disk.
+- Vitest for tests. The model client sits behind an interface; tests use a mock and never call the real API.
+- Model: Claude Haiku 5.5 (`claude-haiku-5-5`) on the Anthropic Claude API via `@anthropic-ai/sdk`; step up to Sonnet 5.5 (`claude-sonnet-5-5`) only if manual sessions show it's needed. Keep the model ID in one config value. Implementation notes are in `docs/decisions.md`.
+- Keep compute low everywhere: capped turns and tokens, prompt caching for the system prompt and rubric.
 
 ## Prompts
 
@@ -32,4 +37,9 @@ Not chosen yet. Prefer the smallest model and simplest app stack that meets the 
 
 ## How to run
 
-TBD after stack choice. Until then: read the spec, then work the checklist in `docs/plan.md`.
+From `source/`, with Node 22+:
+
+- `npm install`, then copy `.env.example` to `.env` and add `ANTHROPIC_API_KEY`.
+- `npm run dev` starts the Hono server (port 8787) and Vite (port 5173). Open http://localhost:5173; Vite proxies `/api` to the server.
+- `npm test` runs Vitest once; `npm run test:watch` reruns on change. `npm run typecheck` runs `tsc`.
+- `npm run build && npm start` serves the built client and API from one process on port 8787.

@@ -5,7 +5,7 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 ## Milestones
 
 - [x] **Spec** — audience, scope, non-goals, session rules, limits, feedback format (`docs/spec.md`)
-- [ ] **Stack** — pick smallest model + simplest app that meets the quality bar; record in `docs/decisions.md` and `AGENTS.md`
+- [x] **Stack** — pick smallest model + simplest app that meets the quality bar; record in `docs/decisions.md` and `AGENTS.md` (2026-10-28: TS, Vite + React, Hono; Claude Haiku 5.5)
 - [x] **Prompts** — interviewer persona (`prompts/personas/persona.md`), notification-service scenario (`prompts/scenarios/notification-service.md`), rubric in `prompts/rubric.md`
 - [ ] **Session loop** — Start button, 12-turn cap, warning at turn 10, End interview, in-memory transcript
 - [ ] **Feedback** — post-session call using the rubric; output format from the spec
@@ -16,6 +16,11 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 
 - [x] Settle hints policy and correction policy in persona.md
 - [x] Copy rubric dimensions into the spec TODO line
+- [x] Scaffold `source/`: Vite + React client, Hono server, Vitest, dev proxy for `/api`
+- [ ] Model client interface plus a mock for tests
+- [ ] Server-held session store with TTL sweep
+- [ ] Tests for turn cap, turn-10 warning, message length, token cap with feedback reserve, and failure paths (before UI work)
+- [ ] Stream interviewer replies from Hono to the client
 - [ ] Implement landing page with a single Start button
 - [ ] Stream or display interviewer and candidate turns
 - [ ] Generate feedback on End interview or turn cap
