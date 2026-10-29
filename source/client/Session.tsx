@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import type { Feedback } from "../shared/feedback.ts";
 import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
-import { ERROR_MESSAGES } from "../shared/strings.ts";
-import { sendTurn } from "./api.ts";
+import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
+import { requestFeedback, sendTurn } from "./api.ts";
+import { FeedbackView } from "./Feedback.tsx";
 
 type Turn = { speaker: "bubo" | "you"; text: string };
 
@@ -16,12 +18,16 @@ export function Session({ sessionId, opening }: Props) {
   const [waiting, setWaiting] = useState(false);
   const [ended, setEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // A server message that comes with an ended interview (interviewer_failed).
+  // Why the interview ended and that feedback is next: the server's message
+  // (interviewer_failed) or the normal end notice.
   const [notice, setNotice] = useState<string | null>(null);
+  const [writingFeedback, setWritingFeedback] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const feedbackHeadingRef = useRef<HTMLHeadingElement>(null);
   const sendingRef = useRef(false);
 
   // Screen reader cue that the interview has started.
@@ -32,7 +38,12 @@ export function Session({ sessionId, opening }: Props) {
   // Keep the newest turn in view. Skipped for the opening so focus stays on the heading.
   useEffect(() => {
     if (turns.length > 1 || waiting) bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [turns.length, waiting]);
+  }, [turns.length, waiting, writingFeedback]);
+
+  // Feedback arrived: move focus to its heading, which also scrolls it into view.
+  useEffect(() => {
+    if (feedback) feedbackHeadingRef.current?.focus();
+  }, [feedback]);
 
   const length = messageLength(draft.trim());
   const tooLong = length > MAX_MESSAGE_CHARS;
@@ -58,9 +69,9 @@ export function Session({ sessionId, opening }: Props) {
     if (result.ok) {
       const { reply } = result;
       if (reply !== null) setTurns((t) => [...t, { speaker: "bubo", text: reply }]);
-      setNotice(result.message);
-      // Feedback after the interview ends comes with the feedback task.
+      setNotice(result.message ?? (result.ended ? UI_MESSAGES.interview_complete : null));
       setEnded(result.ended);
+      if (result.ended) void loadFeedback();
     } else {
       // The message didn't land: take it back out of the transcript and restore the draft.
       // If the interview is over the composer is gone, so the message stays visible instead.
@@ -74,6 +85,18 @@ export function Session({ sessionId, opening }: Props) {
     // The composer unmounts when the interview ends; move focus to the heading, not <body>.
     if (result.ended) headingRef.current?.focus();
     else inputRef.current?.focus();
+  }
+
+  // Called from the handler that ends the interview, not an effect, so StrictMode's
+  // double-run in dev can't send two feedback requests.
+  async function loadFeedback() {
+    setWritingFeedback(true);
+    const result = await requestFeedback(sessionId);
+    setWritingFeedback(false);
+    // "Feedback is coming next" is out of date either way.
+    setNotice(null);
+    if (result.ok) setFeedback(result.feedback);
+    else setError(result.message);
   }
 
   // Enter adds a new line, so long answers are easy to write; Cmd/Ctrl+Enter sends.
@@ -97,7 +120,7 @@ export function Session({ sessionId, opening }: Props) {
             <p className="reply">{turn.text}</p>
           </div>
         ))}
-        {waiting && <p className="thinking">Bubo is thinking…</p>}
+        {waiting && <p className="thinking">{UI_MESSAGES.bubo_thinking}</p>}
       </div>
 
       {notice && (
@@ -105,6 +128,14 @@ export function Session({ sessionId, opening }: Props) {
           {notice}
         </p>
       )}
+
+      {writingFeedback && (
+        <p className="thinking" role="status">
+          {UI_MESSAGES.writing_feedback}
+        </p>
+      )}
+
+      {feedback && <FeedbackView feedback={feedback} headingRef={feedbackHeadingRef} />}
 
       {!ended && (
         <form

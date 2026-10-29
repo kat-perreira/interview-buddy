@@ -71,7 +71,7 @@ npm run dev
 
 Open http://localhost:5173. Vite proxies `/api` to the server on port 8787.
 
-To click through without an API key, set `MODEL_CLIENT=mock` in `.env`. In mock mode, a message containing `[mock:fail]` or `[mock:refuse]` triggers the failure paths.
+To click through without an API key, set `MODEL_CLIENT=mock` in `.env`. In mock mode, a message containing `[mock:fail]` or `[mock:refuse]` triggers the interviewer failure paths, and `[mock:feedback-fail]` makes the feedback call fail.
 
 | Command | What it does |
 | --- | --- |

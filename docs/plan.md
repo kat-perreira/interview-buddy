@@ -25,19 +25,20 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Tests for turn cap, turn-10 and final-turn instructions, message length, and failure paths (before UI work)
 - [x] Implement landing page with a single Start button
 - [x] Display interviewer and candidate turns (full replies; streaming comes later)
-- [ ] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens
-- [ ] Show a clear path to retry feedback if that call fails; tests for the feedback retry path
+- [x] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens; show a notice when the turn cap ends the interview (the input currently just disappears)
+- [ ] Show a clear path to retry feedback if that call fails, and when a send finds the interview already ended (409 `interview_over`); tests for the feedback retry path
 - [ ] Confirm before End interview; lock input and start feedback after the final reply
 - [ ] After feedback: thank-you and "Practice again"; browser leave-page warning from Start until then
 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
 
 - [ ] Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
-- [ ] Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both
+- [ ] Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both; a turn whose response is lost in transit must not count twice when resent
 - [ ] Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
 - [ ] Pause screen: hide transcript, disable input, stop check-in timer; Resume and End interview; limit stated on pause, notice at 25 minutes
 - [ ] Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)
 - [ ] Log the turn count to the browser console in dev builds only
+- [ ] Derive `busy` from `abortCall` in the session (one source for "a call is in flight")
 - [ ] Manual tone review of a few transcripts (include: does Bubo work in the turn-10 warning and final close naturally? Does she follow the pacing guide without mentioning turn numbers?)
 
 ## Later (not v1)

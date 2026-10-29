@@ -1,23 +1,40 @@
 import { MAX_MESSAGE_CHARS } from "./limits.ts";
 
-// Every error and failure message the candidate can see, for the server and the client.
+// Every message the candidate can see, for the server and the client (docs/decisions.md).
+// Headings, labels, and button text stay in the components.
 // Calm and plain; never blames the candidate (docs/spec.md, Failure Handling).
+
+// Notices and status lines, alphabetized.
+export const UI_MESSAGES = {
+  bubo_thinking: "Bubo is thinking…",
+  // Shown above the feedback. Hearing feedback is the hard part, so it opens warmly.
+  feedback_intro:
+    "You did it. Practicing out loud takes nerve, and every session makes the next one easier. Here's what went well and what to work on next.",
+  // Shown when the interview ends normally (turn cap or End interview).
+  interview_complete: "Good job, that's the end of the interview. Your feedback is coming next.",
+  writing_feedback: "Writing your feedback…",
+} as const;
+
+// Errors and failures, alphabetized. Request errors go out as { error, message }
+// with a 4xx or 5xx status; "client-only" ones never come from the server.
 export const ERROR_MESSAGES = {
-  // Request errors, sent as { error, message } with a 4xx or 5xx status.
-  start_failed: "Bubo couldn't start the interview just now. Please try again.",
-  not_found: "This session has ended. Start a new one to keep practicing.",
-  interview_over: "This interview has already ended.",
   busy: "Bubo is still replying. Your message can go once she's done.",
   empty_message: "Type a message to send.",
-  too_long: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters. Please try a shorter response.`,
-
-  // Client-only: the request never reached the server, or the reply was unreadable.
-  send_failed: "Your message didn't reach Bubo. Please try sending it again.",
+  // Client-only.
   end_failed: "The interview couldn't end just now. Please try again.",
-
+  feedback_failed:
+    "Your feedback couldn't be written just now. Your interview is still here, so nothing is lost.",
+  feedback_in_progress: "Your feedback is already being written.",
+  feedback_not_ready: "The interview is still going. Feedback comes when it ends.",
+  interview_over: "This interview has already ended.",
   // Sent with a turn result when Bubo's reply failed twice and the interview ended.
   interviewer_failed:
     "Something went wrong on our side, so the interview ends here. Your feedback is next, based on your responses.",
+  not_found: "This session has ended. Start a new one to keep practicing.",
+  // Client-only.
+  send_failed: "Your message didn't reach Bubo. Please try sending it again.",
+  start_failed: "Bubo couldn't start the interview just now. Please try again.",
+  too_long: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters. Please try a shorter response.`,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_MESSAGES;

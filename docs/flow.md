@@ -29,11 +29,50 @@ Each path sets the session's `endReason`, then feedback runs.
 
 | `endReason` | Trigger |
 | --- | --- |
-| `candidate` | End interview, confirmed (available anywhere in `active`; a reply in progress is dropped) |
+| `candidate` | End interview, confirmed (available anywhere in `active`; a reply in progress is cancelled and dropped) |
 | `turn_cap` | Bubo's closing reply to turn 12 finishes |
 | `token_cap` | The token check before a call fails |
 | `paused_too_long` | 30 minutes in `paused` |
 | `interviewer_failed` | An interviewer call fails twice (error, timeout, refusal, or empty reply); the unanswered message stays and counts as a turn |
+
+## Ending mid-reply
+
+End interview while Bubo is replying. The server side is built; the client's End handler comes with the confirm-before-End task. Feedback is requested once, by whichever response arrives with nothing still in flight.
+
+```mermaid
+sequenceDiagram
+    participant C as Candidate (browser)
+    participant S as Server
+    participant M as Claude
+
+    C->>S: POST /turns
+    S->>S: busy on, abortCall set
+    S->>M: interviewer call, with abort signal
+    C->>S: POST /end (after confirming)
+    S->>S: status feedback_pending, endReason candidate
+    S->>M: abort
+    S-->>C: end state
+    alt A turn is in flight
+        Note over C: End handler doesn't ask for feedback
+        M--xS: call rejects (aborted, not logged or retried)
+        S->>S: busy off (withBusy finally)
+        S-->>C: turn result: reply null, status feedback_pending
+        Note over C: send() sees ended and asks for feedback
+    else No turn in flight
+        Note over C: End handler asks for feedback
+    end
+    C->>S: POST /feedback (a ref guard keeps it to one request)
+    S->>M: feedback call
+    M-->>S: feedback JSON
+    S-->>C: feedback, status done
+```
+
+If the client asked for feedback before the turn result arrived, the server would still be busy and answer 409 `feedback_in_progress`.
+
+## Feedback
+
+- The client asks for feedback as soon as the interview ends. The server makes one feedback call per request.
+- Success moves the session to `done` and returns the feedback, which is not stored. Any failure moves it to `feedback_failed`, where the same request can be made again.
 
 ## Timers
 

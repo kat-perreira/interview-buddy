@@ -38,6 +38,16 @@ describe("buildRequest", () => {
     expect(params.output_config).toEqual({ effort: FEEDBACK_EFFORT });
   });
 
+  it("asks for structured output when the request has a schema", () => {
+    const schema = { type: "object", properties: {}, additionalProperties: false };
+    const params = buildRequest({ ...interviewerRequest, kind: "feedback", schema });
+
+    expect(params.output_config).toEqual({
+      effort: FEEDBACK_EFFORT,
+      format: { type: "json_schema", schema },
+    });
+  });
+
   it("sends no sampling parameters, which the model rejects", () => {
     const params = buildRequest(interviewerRequest);
 

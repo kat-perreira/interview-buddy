@@ -134,6 +134,31 @@ Short log of why we chose X. Newest last.
 
 **Why:** A cozy first impression at no cost: no assets, no dependencies, no model call. It fits the minimal black-and-monospace look. The line stays clear: one static owl on the page you start from, never a character on screen during the interview.
 
+## 2026-10-29 — all candidate-facing messages live in `shared/strings.ts`
+
+**Choice:** `shared/strings.ts` holds every message the candidate can see: errors and failures (`ERROR_MESSAGES`), and notices, status lines, and encouragement (`UI_MESSAGES`). Each section is alphabetized. Headings, labels, and button text stay in the components.
+
+**Why:** One file to review for tone, and the server and client share it. Structural labels change with the layout, so they stay next to it.
+
+## 2026-10-29 — feedback call: structured JSON, its own prompt, plain voice
+
+**Choice:**
+- The feedback call returns JSON against a schema (`shared/feedback.ts`) using structured outputs. The server checks it has every rubric dimension (a 1-4 rating or null for "not observed", plus one line of evidence), at least two strengths and two areas to improve, and three practice steps. Lists that run long are cut to three. Anything missing fails the call.
+- It has its own system prompt: `prompts/feedback.md`, the scenario, and the rubric. No persona. The transcript goes in as one labeled block of data, followed by a plain fact about how the interview ended.
+- Feedback is written in a plain, warm coaching voice: honest, with a spoonful of sugar, and no owl touches. The page adds a fixed note of encouragement above it.
+- One attempt per request. A failure (error, refusal, cut-off reply, or missing fields) leaves the session in `feedback_failed`, and the same route can be called again. Feedback is not stored.
+- End interview cancels an interviewer call in flight (abort signal through `ModelClient`). The cancelled call isn't logged or retried, and its usage isn't counted because it never arrives.
+- The dimension list and rating labels are copied into code; a test checks they match `prompts/rubric.md`.
+- **Exception:** "Tone and feedback principles live in docs/spec.md. Link to them; do not restate them" (`.claude/rules/style.md`). `prompts/feedback.md` restates the feedback principles the model must follow, because a prompt can't follow a link.
+
+**Why:** Two-item minimums match the spec's "top 2-3"; watch in stress tests whether they fail calls too often. Spec success criterion 3 needs every dimension in every feedback, so the server enforces it instead of hoping a Markdown reply has it. JSON also lets the client draw a real table without a Markdown library. A separate prompt keeps the model grading, not replying as Bubo, and keeps owl flavor out of critique, where it could undercut the emotionally safe tone. Hearing feedback is the hardest part of practice, so the page opens warmly. No automatic retry, because the spec gives the candidate the retry. Cancelling a reply nobody will see saves its output tokens.
+
+## 2026-10-29 — the ASCII owl also appears on the feedback page
+
+**Choice:** The same static ASCII owl from the landing page sits above the feedback. It's still the only owl visual, decorative and skipped by screen readers. During the interview Bubo stays language-only.
+
+**Why:** Feedback is the vulnerable moment of the session, and a familiar friendly face softens it at no cost. It's the same string, so there's no new art or asset. The spec's Non-Goals note both exceptions.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

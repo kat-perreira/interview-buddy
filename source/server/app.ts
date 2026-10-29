@@ -4,6 +4,7 @@ import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
 import { ERROR_MESSAGES, type ErrorCode } from "../shared/strings.ts";
 import { MAX_CANDIDATE_TURNS } from "./config.ts";
 import type { ModelClient } from "./model/types.ts";
+import { callFeedback } from "./session/feedback.ts";
 import { callInterviewer } from "./session/interviewer.ts";
 import type { SessionStore } from "./session/store.ts";
 import type { EndReason, Session } from "./session/types.ts";
@@ -13,12 +14,14 @@ export interface AppDeps {
   store: SessionStore;
   // The interviewer's system prompt (persona, scenario, rubric). Tests pass a stub.
   systemPrompt: string;
+  // The feedback call's system prompt (feedback instructions, scenario, rubric).
+  feedbackPrompt: string;
 }
 
 // Routes live here, separate from the Node listener in index.ts,
 // so tests can call app.request() without starting a server.
 // Dependencies are passed in so tests can use the mock client and a fake clock.
-export function createApp({ modelClient, store, systemPrompt }: AppDeps) {
+export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: AppDeps) {
   const app = new Hono().basePath("/api");
 
   const error = (code: ErrorCode) => ({ error: code, message: ERROR_MESSAGES[code] });
@@ -29,12 +32,19 @@ export function createApp({ modelClient, store, systemPrompt }: AppDeps) {
   };
 
   // `busy` blocks a second message while a model call is in flight.
-  const withBusy = async <T>(session: Session, call: () => Promise<T>): Promise<T> => {
+  // `abortCall` lets End interview cancel it.
+  const withBusy = async <T>(
+    session: Session,
+    call: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> => {
+    const controller = new AbortController();
     session.busy = true;
+    session.abortCall = controller;
     try {
-      return await call();
+      return await call(controller.signal);
     } finally {
       session.busy = false;
+      session.abortCall = null;
     }
   };
 
@@ -92,7 +102,9 @@ export function createApp({ modelClient, store, systemPrompt }: AppDeps) {
     session.candidateTurns++;
     store.touch(session);
 
-    const reply = await withBusy(session, () => callInterviewer(modelClient, systemPrompt, session));
+    const reply = await withBusy(session, (signal) =>
+      callInterviewer(modelClient, systemPrompt, session, signal),
+    );
     store.touch(session);
 
     // The candidate pressed End interview while Bubo was replying: drop the reply.
@@ -110,14 +122,37 @@ export function createApp({ modelClient, store, systemPrompt }: AppDeps) {
   });
 
   // End interview. Always allowed while active, even mid-reply (the client confirms first).
+  // A reply in progress is cancelled so the dropped reply stops costing tokens.
   app.post("/sessions/:id/end", (c) => {
     const session = store.get(c.req.param("id"));
     if (!session) return c.json(error("not_found"), 404);
     if (session.status !== "active") return c.json(error("interview_over"), 409);
 
     endInterview(session, "candidate");
+    session.abortCall?.abort();
     store.touch(session);
     return c.json(state(session));
+  });
+
+  // Write the feedback once the interview has ended. A failed call leaves the session in
+  // feedback_failed, where this route can be called again. Feedback is not stored.
+  app.post("/sessions/:id/feedback", async (c) => {
+    const session = store.get(c.req.param("id"));
+    if (!session) return c.json(error("not_found"), 404);
+    if (session.status === "active") return c.json(error("feedback_not_ready"), 409);
+    if (session.status === "done") return c.json(error("interview_over"), 409);
+    // Also covers a dropped interviewer reply that hasn't settled yet after End interview.
+    if (session.busy) return c.json(error("feedback_in_progress"), 409);
+
+    const feedback = await withBusy(session, () => callFeedback(modelClient, feedbackPrompt, session));
+    store.touch(session);
+
+    if (feedback === null) {
+      session.status = "feedback_failed";
+      return c.json(error("feedback_failed"), 502);
+    }
+    session.status = "done";
+    return c.json({ feedback, ...state(session) });
   });
 
   return app;

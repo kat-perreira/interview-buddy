@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mockFeedback } from "../server/model/mock.ts";
 import { ERROR_MESSAGES } from "../shared/strings.ts";
-import { endSession, sendTurn, startSession } from "./api.ts";
+import { endSession, requestFeedback, sendTurn, startSession } from "./api.ts";
 
 function stubFetch(impl: () => Promise<Response>) {
   const fetchMock = vi.fn(impl);
@@ -166,5 +167,39 @@ describe("endSession", () => {
     });
 
     expect(await endSession("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.end_failed });
+  });
+});
+
+describe("requestFeedback", () => {
+  it("posts to the feedback route and returns the feedback", async () => {
+    const feedback = mockFeedback();
+    const fetchMock = stubFetch(async () =>
+      Response.json({ feedback, turn: 3, status: "done", endReason: "candidate" }),
+    );
+
+    expect(await requestFeedback("abc")).toEqual({ ok: true, feedback });
+    expect(fetchMock).toHaveBeenCalledWith("/api/sessions/abc/feedback", { method: "POST" });
+  });
+
+  it("passes the server's message through when the feedback fails", async () => {
+    stubFetch(async () =>
+      Response.json({ error: "feedback_failed", message: "Server says try again." }, { status: 502 }),
+    );
+
+    expect(await requestFeedback("abc")).toEqual({ ok: false, message: "Server says try again." });
+  });
+
+  it("treats incomplete feedback as a failure", async () => {
+    stubFetch(async () => Response.json({ feedback: { summary: "Only this." }, status: "done" }));
+
+    expect(await requestFeedback("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.feedback_failed });
+  });
+
+  it("falls back to feedback_failed when the request never reaches the server", async () => {
+    stubFetch(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    expect(await requestFeedback("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.feedback_failed });
   });
 });

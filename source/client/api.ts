@@ -1,3 +1,4 @@
+import { parseFeedback, type Feedback } from "../shared/feedback.ts";
 import { ERROR_MESSAGES } from "../shared/strings.ts";
 
 export type StartResult =
@@ -11,6 +12,8 @@ export type TurnResult =
   | { ok: false; message: string; ended: boolean };
 
 export type EndResult = { ok: true } | { ok: false; message: string };
+
+export type FeedbackResult = { ok: true; feedback: Feedback } | { ok: false; message: string };
 
 // Request errors that mean the session can't take more turns.
 const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
@@ -79,4 +82,23 @@ export async function endSession(sessionId: string): Promise<EndResult> {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
   return { ok: false, message: ERROR_MESSAGES.end_failed };
+}
+
+// Asks for the feedback once the interview has ended. Safe to call again after a failure.
+export async function requestFeedback(sessionId: string): Promise<FeedbackResult> {
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/feedback`, {
+      method: "POST",
+    });
+    const body = await res.json();
+    if (res.ok) {
+      const feedback = parseFeedback(body?.feedback);
+      if (feedback) return { ok: true, feedback };
+    } else if (typeof body?.message === "string") {
+      return { ok: false, message: body.message };
+    }
+  } catch {
+    // Network error or a body that isn't JSON: fall through to the generic message.
+  }
+  return { ok: false, message: ERROR_MESSAGES.feedback_failed };
 }

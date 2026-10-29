@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     test: {
-      include: ["client/**/*.test.{ts,tsx}", "server/**/*.test.ts"],
+      include: ["client/**/*.test.{ts,tsx}", "server/**/*.test.ts", "shared/**/*.test.ts"],
       environment: "node",
     },
   };

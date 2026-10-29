@@ -50,6 +50,7 @@ export function createSessionStore(
         tokensUsed: 0,
         lastCall: null,
         busy: false,
+        abortCall: null,
         pausedAt: null,
         lastActiveAt: now(),
       };

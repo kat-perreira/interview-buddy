@@ -9,6 +9,8 @@ import {
 } from "../config.ts";
 import type { ModelClient, ModelRequest, ModelResult, StopReason } from "./types.ts";
 
+// How a request becomes an API call, with a diagram: docs/model-calls.md.
+// Per-call settings, picked by the request's kind.
 const SETTINGS = {
   interviewer: { maxTokens: INTERVIEWER_MAX_TOKENS, effort: INTERVIEWER_EFFORT },
   feedback: { maxTokens: FEEDBACK_MAX_TOKENS, effort: FEEDBACK_EFFORT },
@@ -22,7 +24,10 @@ export function buildRequest(request: ModelRequest): Anthropic.MessageCreatePara
     max_tokens: maxTokens,
     // Thinking counts against max_tokens and could crowd out a 400-token reply.
     thinking: { type: "disabled" },
-    output_config: { effort },
+    output_config: {
+      effort,
+      ...(request.schema && { format: { type: "json_schema", schema: request.schema } }),
+    },
     // Automatic caching: each call reuses the cached system prompt and earlier turns.
     cache_control: { type: "ephemeral" },
     system: request.system,
@@ -68,8 +73,8 @@ export function createSdkClient(apiKey?: string): Anthropic {
 
 export function createAnthropicModelClient(sdk: Anthropic = createSdkClient()): ModelClient {
   return {
-    async complete(request, onText) {
-      const stream = sdk.messages.stream(buildRequest(request));
+    async complete(request, { onText, signal } = {}) {
+      const stream = sdk.messages.stream(buildRequest(request), { signal });
       if (onText) stream.on("text", (delta) => onText(delta));
       return toResult(await stream.finalMessage());
     },

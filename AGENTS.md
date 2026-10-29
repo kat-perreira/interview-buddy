@@ -10,7 +10,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 - The candidate can always end the session, and is warned before it ends.
 - Do not change limits (turn cap, token caps) without updating the spec and `docs/decisions.md`.
 - Open questions (how to evaluate interviewer quality) are not yours to settle silently. Ask, then record the answer in `docs/decisions.md`.
-- Keep `docs/plan.md` and `docs/decisions.md` current when direction changes. Keep `docs/flow.md` in step with any session flow change. Keep `docs/turn-requests.md` in step with `source/server/session/request.ts` and the marker rules in `persona.md`.
+- Keep `docs/plan.md` and `docs/decisions.md` current when direction changes. Keep `docs/flow.md` in step with any session flow change. Keep `docs/turn-requests.md` in step with `source/server/session/request.ts` and the marker rules in `persona.md`. Keep `docs/model-calls.md` in step with `source/server/model/`.
 - When you finish a task listed in `docs/plan.md`, check it off in the same change, but only if it meets the matching success criterion in `docs/spec.md` (where one applies). Say which box you checked. Never check off **Acceptance** or manual-review items yourself; they need real sessions, so ask the user.
 
 ## Stack
@@ -24,7 +24,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 
 ## Prompts
 
-- Layout: persona in `prompts/personas/`, scenarios in `prompts/scenarios/`, rubric in `prompts/rubric.md`.
+- Layout: persona in `prompts/personas/`, scenarios in `prompts/scenarios/`, rubric in `prompts/rubric.md`, feedback instructions in `prompts/feedback.md`.
 - `docs/owl-character.md` is design notes for the persona. Never load it into a prompt or copy it into one; distill only behavior-changing traits into `persona.md`.
 - Shared rules (tone, safety, output format, feedback and scoring) live in one place each. Do not copy them into other files.
 - Behavior specific to one persona in one scenario is written inline on purpose, even if it echoes something elsewhere. Do not deduplicate it.
@@ -33,7 +33,7 @@ Text-only system design interview practice. v1: one owl interviewer (language on
 ## Code
 
 - Application code lives in `source/` (not `src/`, to avoid clashing with the parent folder's `src/`).
-- Every error and failure message the candidate can see lives in `source/shared/strings.ts`, used by both server and client. Add new ones there, not inline.
+- Every message the candidate can see (errors, failures, notices, status lines) lives in `source/shared/strings.ts`, used by both server and client, alphabetized within each section. Add new ones there, not inline. Headings, labels, and button text stay in the components.
 - Editor rules in `.claude/rules/` cover style and testing. Follow them rather than restating them here.
 
 ## How to run
@@ -42,7 +42,7 @@ From `source/`, with Node 22+:
 
 - `npm install`, then copy `.env.example` to `.env` and add `ANTHROPIC_API_KEY`.
 - `npm run dev` starts the Hono server (port 8787) and Vite (port 5173). Open http://localhost:5173; Vite proxies `/api` to the server.
-- Set `MODEL_CLIENT=mock` in `.env` to click through the app without API calls. In mock mode, a candidate message containing `[mock:fail]` or `[mock:refuse]` triggers the failure paths.
-- Failed interviewer calls, and replies cut off at `max_tokens`, log a `[interviewer]` warning in the server console (no message text). In dev, editing a prompt file restarts the server, which ends any open session.
+- Set `MODEL_CLIENT=mock` in `.env` to click through the app without API calls. In mock mode, a candidate message containing `[mock:fail]` or `[mock:refuse]` triggers the interviewer failure paths, and `[mock:feedback-fail]` makes the feedback call fail.
+- Failed interviewer calls, and replies cut off at `max_tokens`, log a `[interviewer]` warning in the server console (no message text). Failed feedback calls log a `[feedback]` warning. In dev, editing a prompt file restarts the server, which ends any open session.
 - `npm test` runs Vitest once; `npm run test:watch` reruns on change. `npm run typecheck` runs `tsc`.
 - `npm run build && npm start` serves the built client and API from one process on port 8787.

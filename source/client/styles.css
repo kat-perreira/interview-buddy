@@ -81,8 +81,9 @@ button:focus-visible {
   margin-top: 0;
 }
 
-/* Focus target for the screen reader cue on start; not interactive, so no ring. */
-h1[tabindex="-1"]:focus {
+/* Focus targets for screen reader cues; not interactive, so no ring. */
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus {
   outline: none;
 }
 
@@ -145,4 +146,81 @@ textarea:focus-visible {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.feedback {
+  margin-top: 3rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 0 0 1rem;
+}
+
+h3 {
+  font-size: 1rem;
+  color: var(--accent);
+  margin: 2rem 0 0.5rem;
+}
+
+.feedback ul,
+.feedback ol {
+  color: var(--text);
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.feedback li + li {
+  margin-top: 0.5rem;
+}
+
+/* The rubric table: rows stack as cards on narrow screens, so there's no sideways scroll. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-bottom: 1px solid #333;
+}
+
+thead th {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+tbody th {
+  font-weight: normal;
+}
+
+@media (max-width: 32rem) {
+  thead {
+    display: none;
+  }
+
+  tr,
+  th,
+  td {
+    display: block;
+  }
+
+  tbody th {
+    padding-bottom: 0;
+    border-bottom: none;
+    color: var(--accent);
+  }
+
+  td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  tr {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #333;
+  }
 }

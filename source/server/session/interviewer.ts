@@ -1,4 +1,5 @@
-import { totalTokens, type ModelClient, type TokenUsage } from "../model/types.ts";
+import type { ModelClient } from "../model/types.ts";
+import { describeError, recordUsage } from "./calls.ts";
 import { buildInterviewerRequest } from "./request.ts";
 import type { Session } from "./types.ts";
 
@@ -9,10 +10,13 @@ const MAX_ATTEMPTS = 2;
 // and empty replies all count as failures. Usage from any attempt that reached the API
 // counts toward the session, refusals and empty replies included: those tokens were billed.
 // Failures are logged here only; what the candidate sees comes from shared/strings.ts.
+// `signal` aborts when the candidate ends mid-reply. An aborted call returns null and isn't
+// logged or retried. Its usage never arrives, so it isn't counted.
 export async function callInterviewer(
   modelClient: ModelClient,
   system: string,
   session: Session,
+  signal?: AbortSignal,
 ): Promise<string | null> {
   const request = buildInterviewerRequest(system, session.transcript);
 
@@ -20,7 +24,7 @@ export async function callInterviewer(
     // The candidate ended the interview during a failed attempt: don't pay for a retry.
     if (attempt > 1 && session.status !== "active") return null;
     try {
-      const result = await modelClient.complete(request);
+      const result = await modelClient.complete(request, { signal });
       recordUsage(session, result.usage);
       const text = result.text.trim();
       if (result.stopReason === "refusal") warn(session, attempt, "refusal");
@@ -31,27 +35,11 @@ export async function callInterviewer(
         return text;
       }
     } catch (error) {
+      if (signal?.aborted) return null;
       warn(session, attempt, describeError(error));
     }
   }
   return null;
-}
-
-function recordUsage(session: Session, usage: TokenUsage): void {
-  session.tokensUsed += totalTokens(usage);
-  session.lastCall = { input: usage.input + usage.cacheWrite + usage.cacheRead, output: usage.output };
-}
-
-// Error class, HTTP status, and request ID only: API error messages can quote request content.
-// The SDK's error classes don't set `name`, so the class comes from the constructor.
-// The request ID lets Anthropic support trace a failed call.
-function describeError(error: unknown): string {
-  if (!(error instanceof Error)) return "unknown error";
-  const { status, requestID } = error as { status?: unknown; requestID?: unknown };
-  const parts = [error.constructor.name];
-  if (typeof status === "number") parts.push(String(status));
-  if (typeof requestID === "string") parts.push(`(request ${requestID})`);
-  return parts.join(" ");
 }
 
 // Console only for now (no monitoring yet). Never logs message text.

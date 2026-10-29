@@ -1,3 +1,4 @@
+import { RUBRIC_DIMENSIONS, type Feedback } from "../../shared/feedback.ts";
 import type { ModelClient, ModelRequest, StopReason, TokenUsage } from "./types.ts";
 
 // One scripted reply. `thinkingTokens` adds to output usage without adding text,
@@ -11,8 +12,11 @@ export interface MockModelClient extends ModelClient {
 }
 
 // Typing one of these as the candidate in dev mock mode triggers the failure paths.
+// Feedback has its own trigger: the feedback call sees the whole transcript, so a
+// [mock:fail] that ended the interview would otherwise fail its feedback too.
 export const MOCK_FAIL = "[mock:fail]";
 export const MOCK_REFUSE = "[mock:refuse]";
+export const MOCK_FEEDBACK_FAIL = "[mock:feedback-fail]";
 
 export function createMockModelClient(
   options: { steps?: MockStep[]; delayMs?: number } = {},
@@ -22,14 +26,15 @@ export function createMockModelClient(
 
   return {
     calls,
-    async complete(request, onText) {
+    async complete(request, { onText, signal } = {}) {
       calls.push(request);
+      signal?.throwIfAborted();
       const step = steps.shift() ?? defaultStep(request, calls.length);
       if ("error" in step) throw step.error;
 
       const text = step.stopReason === "refusal" ? "" : step.text;
       for (const delta of text.split(/(?<= )/)) {
-        if (options.delayMs) await sleep(options.delayMs);
+        if (options.delayMs) await sleep(options.delayMs, signal);
         onText?.(delta);
       }
 
@@ -50,9 +55,32 @@ export function createMockModelClient(
 
 function defaultStep(request: ModelRequest, callNumber: number): MockStep {
   const lastMessage = request.messages.at(-1)?.content ?? "";
+  if (request.kind === "feedback") {
+    if (lastMessage.includes(MOCK_FEEDBACK_FAIL)) return { error: new Error("Mock model failure") };
+    return { text: JSON.stringify(mockFeedback()) };
+  }
   if (lastMessage.includes(MOCK_FAIL)) return { error: new Error("Mock model failure") };
   if (lastMessage.includes(MOCK_REFUSE)) return { text: "", stopReason: "refusal" };
   return { text: `Mock ${request.kind} reply ${callNumber}. No API call was made.` };
+}
+
+// Valid feedback with one "not observed" dimension, so the client shows both kinds of row.
+export function mockFeedback(): Feedback {
+  const dimensions = Object.fromEntries(
+    RUBRIC_DIMENSIONS.map((d, i) => [
+      d.id,
+      i === RUBRIC_DIMENSIONS.length - 1
+        ? { rating: null, evidence: "Not observed in this session." }
+        : { rating: (i % 4) + 1, evidence: `Mock evidence for ${d.label.toLowerCase()}.` },
+    ]),
+  ) as Feedback["dimensions"];
+  return {
+    summary: "Mock feedback. No API call was made.",
+    dimensions,
+    strengths: ["Mock strength one.", "Mock strength two."],
+    improvements: ["Mock area to improve one.", "Mock area to improve two."],
+    practiceSteps: ["Mock practice step one.", "Mock practice step two.", "Mock practice step three."],
+  };
 }
 
 // Rough English estimate: about four characters per token.
@@ -60,6 +88,18 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Rejects as soon as the signal aborts, the way a cancelled API call does.
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

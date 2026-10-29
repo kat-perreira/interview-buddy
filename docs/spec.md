@@ -19,7 +19,7 @@ Software engineers pursuing mid- to senior-level roles who need interactive prac
 ## Non-Goals (out of scope for v1)
 - Multiple interviewer personas
 - Additional scenarios (v2)
-- Avatar, voice, or other multimodal features (including owl visuals; in the interview the owl is expressed through language only. The one exception is a small static ASCII owl on the landing page.)
+- Avatar, voice, or other multimodal features (including owl visuals; in the interview the owl is expressed through language only. The one exception is a small static ASCII owl on the landing page and above the feedback.)
 - Diagramming or whiteboard input
 - User accounts, login, and saved history across sessions
 - Persisting transcripts (session lives in memory only; a refresh ends it)

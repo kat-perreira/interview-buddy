@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { createModelClient } from "./index.ts";
-import { MOCK_FAIL, MOCK_REFUSE, createMockModelClient } from "./mock.ts";
+import { parseFeedback } from "../../shared/feedback.ts";
+import {
+  MOCK_FAIL,
+  MOCK_FEEDBACK_FAIL,
+  MOCK_REFUSE,
+  createMockModelClient,
+  mockFeedback,
+} from "./mock.ts";
 import type { ModelRequest } from "./types.ts";
 
-function request(content: string): ModelRequest {
-  return { kind: "interviewer", system: "abcd", messages: [{ role: "user", content }] };
+function request(content: string, kind: ModelRequest["kind"] = "interviewer"): ModelRequest {
+  return { kind, system: "abcd", messages: [{ role: "user", content }] };
 }
 
 describe("createMockModelClient", () => {
@@ -53,7 +60,7 @@ describe("createMockModelClient", () => {
     const client = createMockModelClient({ steps: [{ text: "Tell me about fan-out." }] });
     const deltas: string[] = [];
 
-    const result = await client.complete(request("x"), (d) => deltas.push(d));
+    const result = await client.complete(request("x"), { onText: (d) => deltas.push(d) });
 
     expect(deltas.length).toBeGreaterThan(1);
     expect(deltas.join("")).toBe(result.text);
@@ -73,6 +80,40 @@ describe("createMockModelClient", () => {
 
     await expect(client.complete(request(`please ${MOCK_FAIL}`))).rejects.toThrow();
     expect((await client.complete(request(MOCK_REFUSE))).stopReason).toBe("refusal");
+  });
+
+  it("returns valid feedback JSON for a feedback call", async () => {
+    const client = createMockModelClient();
+
+    const result = await client.complete(request("transcript", "feedback"));
+
+    expect(parseFeedback(JSON.parse(result.text))).toEqual(mockFeedback());
+  });
+
+  // The feedback call sees the whole transcript, so an earlier [mock:fail] is in it.
+  it("fails feedback only on its own trigger phrase", async () => {
+    const client = createMockModelClient();
+
+    await expect(client.complete(request(MOCK_FAIL, "feedback"))).resolves.toBeDefined();
+    await expect(client.complete(request(MOCK_FEEDBACK_FAIL, "feedback"))).rejects.toThrow();
+  });
+
+  it("rejects when the signal aborts mid-reply", async () => {
+    const client = createMockModelClient({ steps: [{ text: "a long reply" }], delayMs: 1_000 });
+    const controller = new AbortController();
+
+    const call = client.complete(request("x"), { signal: controller.signal });
+    controller.abort();
+
+    await expect(call).rejects.toThrow();
+  });
+
+  it("rejects at once when the signal is already aborted", async () => {
+    const client = createMockModelClient({ steps: [{ text: "reply" }], delayMs: 1_000 });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(client.complete(request("x"), { signal: controller.signal })).rejects.toThrow();
   });
 });
 

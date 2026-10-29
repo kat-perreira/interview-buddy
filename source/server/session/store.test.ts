@@ -26,6 +26,7 @@ describe("createSessionStore", () => {
       tokensUsed: 0,
       lastCall: null,
       busy: false,
+      abortCall: null,
       pausedAt: null,
     });
     expect(store.get(session.id)).toBe(session);
