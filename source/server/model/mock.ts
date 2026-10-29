@@ -21,8 +21,9 @@ export const MOCK_REFUSE = "[mock:refuse]";
 export const MOCK_FEEDBACK_FAIL = "[mock:feedback-fail]";
 export const MOCK_FEEDBACK_FAIL_ONCE = "[mock:feedback-fail-once]";
 
+// `log` prints one [mock] line per call to the server console (dev mock mode only).
 export function createMockModelClient(
-  options: { steps?: MockStep[]; delayMs?: number } = {},
+  options: { steps?: MockStep[]; delayMs?: number; log?: boolean } = {},
 ): MockModelClient {
   const steps = [...(options.steps ?? [])];
   const calls: ModelRequest[] = [];
@@ -32,20 +33,36 @@ export function createMockModelClient(
     async complete(request, { onText, signal } = {}) {
       calls.push(request);
       signal?.throwIfAborted();
-      const step = steps.shift() ?? defaultStep(request, calls);
-      if ("error" in step) throw step.error;
+      const input = estimateTokens(request.system + request.messages.map((m) => m.content).join(""));
+      const turn = describeTurn(request);
+      const log = (outcome: string) => {
+        if (options.log) {
+          console.log(`[mock] call ${calls.length}: ${request.kind}, ${turn}, ~${input} input tokens, ${outcome}`);
+        }
+      };
+      const step = steps.shift() ?? defaultStep(request, calls, `${turn}, ~${input} input tokens`);
+      if ("error" in step) {
+        log("error");
+        throw step.error;
+      }
 
       const text = step.stopReason === "refusal" ? "" : step.text;
-      for (const delta of text.split(/(?<= )/)) {
-        if (options.delayMs) await sleep(options.delayMs, signal);
-        onText?.(delta);
+      try {
+        for (const delta of text.split(/(?<= )/)) {
+          if (options.delayMs) await sleep(options.delayMs, signal);
+          onText?.(delta);
+        }
+      } catch (error) {
+        log("aborted");
+        throw error;
       }
+      log(step.stopReason ?? "end_turn");
 
       return {
         text,
         stopReason: step.stopReason ?? "end_turn",
         usage: {
-          input: estimateTokens(request.system + request.messages.map((m) => m.content).join("")),
+          input,
           output: estimateTokens(text) + (step.thinkingTokens ?? 0),
           cacheWrite: 0,
           cacheRead: 0,
@@ -56,8 +73,8 @@ export function createMockModelClient(
   };
 }
 
-// `calls` already includes this request.
-function defaultStep(request: ModelRequest, calls: ModelRequest[]): MockStep {
+// `calls` already includes this request. `details` goes into the canned interviewer reply.
+function defaultStep(request: ModelRequest, calls: ModelRequest[], details: string): MockStep {
   const lastMessage = request.messages.at(-1)?.content ?? "";
   if (request.kind === "feedback") {
     if (lastMessage.includes(MOCK_FEEDBACK_FAIL)) return { error: new Error("Mock model failure") };
@@ -73,7 +90,22 @@ function defaultStep(request: ModelRequest, calls: ModelRequest[]): MockStep {
   }
   if (lastMessage.includes(MOCK_FAIL)) return { error: new Error("Mock model failure") };
   if (lastMessage.includes(MOCK_REFUSE)) return { text: "", stopReason: "refusal" };
-  return { text: `Mock ${request.kind} reply ${calls.length}. No API call was made.` };
+  return {
+    text:
+      `Mock ${request.kind} reply (call ${calls.length} since server start): ` +
+      `${details}. No API call was made.`,
+  };
+}
+
+// What Bubo would have been told: the last message's turn note and any marker, so
+// "[Turn 10 of 12] [Wrap-up]" becomes "turn 10 of 12, Wrap-up". Brackets are dropped
+// because the reply is stored in the transcript, which never holds turn notes.
+function describeTurn(request: ModelRequest): string {
+  if (request.kind === "feedback") return "transcript";
+  const last = request.messages.at(-1)?.content ?? "";
+  const note = last.match(/^\[Turn \d+ of \d+\]( \[[^\]]+\])*/)?.[0];
+  if (!note) return "opening";
+  return note.slice(1, -1).replace("Turn", "turn").split("] [").join(", ");
 }
 
 // Valid feedback with one "not observed" dimension, so the client shows both kinds of row.

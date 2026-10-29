@@ -29,6 +29,7 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Show a clear path to retry feedback if that call fails, and when a send finds the interview already ended (409 `interview_over`); tests for the feedback retry path (server and `api.ts`)
 - [ ] Component tests for the Session screen (add `@testing-library/react` and `jsdom`): Retry feedback appears on a retryable failure and recovers; a message turned away with `interview_over` shows "Not sent"
 - [ ] Confirm before End interview; lock input and start feedback after the final reply
+- [ ] After 3 failed Retry feedback attempts, suggest starting a new interview (a refresh ends the session, so don't promise the feedback comes back). Needs a spec line and a `docs/decisions.md` entry; consider together with the open question on re-asking after `feedback_in_progress`. From the 2026-10-29 bug bash, case 2.
 - [ ] After feedback: thank-you and "Practice again"; browser leave-page warning from Start until then
 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.

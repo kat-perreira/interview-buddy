@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createModelClient } from "./index.ts";
 import { parseFeedback } from "../../shared/feedback.ts";
 import {
@@ -10,6 +10,8 @@ import {
   mockFeedback,
 } from "./mock.ts";
 import type { ModelRequest } from "./types.ts";
+import { MAX_CANDIDATE_TURNS, WRAP_UP_TURN } from "../config.ts";
+import { KICKOFF_MESSAGE, turnNote } from "../session/request.ts";
 
 function request(content: string, kind: ModelRequest["kind"] = "interviewer"): ModelRequest {
   return { kind, system: "abcd", messages: [{ role: "user", content }] };
@@ -74,6 +76,50 @@ describe("createMockModelClient", () => {
 
     expect(result.text).toContain("No API call was made");
     expect(result.stopReason).toBe("end_turn");
+  });
+
+  it("shows the call number and the turn it got in the canned reply, without brackets", async () => {
+    const client = createMockModelClient();
+
+    const opening = await client.complete(request(KICKOFF_MESSAGE));
+    const wrapUp = await client.complete(request(`${turnNote(WRAP_UP_TURN)}\n\nhello`));
+
+    expect(opening.text).toContain("(call 1 since server start): opening,");
+    expect(wrapUp.text).toContain(
+      `(call 2 since server start): turn ${WRAP_UP_TURN} of ${MAX_CANDIDATE_TURNS}, Wrap-up,`,
+    );
+    expect(wrapUp.text).not.toContain("[");
+  });
+
+  it("logs one [mock] line per call with its outcome when log is on", async () => {
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: string) => lines.push(line));
+    const client = createMockModelClient({
+      steps: [{ error: new Error("boom") }, { text: "", stopReason: "refusal" }],
+      log: true,
+    });
+
+    await expect(client.complete(request(`${turnNote(1)}\n\nhi`))).rejects.toThrow();
+    await client.complete(request("transcript", "feedback"));
+    spy.mockRestore();
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/^\[mock\] call 1: interviewer, turn 1 of \d+, ~\d+ input tokens, error$/);
+    expect(lines[1]).toMatch(/^\[mock\] call 2: feedback, transcript, ~\d+ input tokens, refusal$/);
+  });
+
+  it("logs an aborted stream as aborted", async () => {
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: string) => lines.push(line));
+    const client = createMockModelClient({ steps: [{ text: "a long reply" }], delayMs: 1_000, log: true });
+    const controller = new AbortController();
+
+    const call = client.complete(request("x"), { signal: controller.signal });
+    controller.abort();
+    await expect(call).rejects.toBeDefined();
+    spy.mockRestore();
+
+    expect(lines).toEqual([expect.stringMatching(/, aborted$/)]);
   });
 
   it("fails or refuses on the dev trigger phrases", async () => {

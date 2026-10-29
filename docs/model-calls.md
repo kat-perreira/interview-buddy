@@ -7,7 +7,7 @@ Session code never touches the SDK. It builds a `ModelRequest` (which call it is
 ```mermaid
 flowchart TD
     A["Session code<br/>buildInterviewerRequest or buildFeedbackRequest"] -->|"ModelRequest<br/>kind, system, messages, schema?"| B{"ModelClient<br/>(createModelClient reads MODEL_CLIENT)"}
-    B -->|"mock"| M["Mock client<br/>scripted reply, fake usage,<br/>trigger phrases"]
+    B -->|"mock"| M["Mock client<br/>scripted reply, fake usage,<br/>trigger phrases, [mock] log"]
     B -->|"default"| C["buildRequest<br/>settings for this kind"]
     C --> D["SDK messages.stream<br/>with the abort signal"]
     D --> E["Claude API"]
