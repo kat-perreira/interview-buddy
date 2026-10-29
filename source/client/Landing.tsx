@@ -37,7 +37,7 @@ export function Landing({ onStarted }: Props) {
         <li>A refresh ends the session</li>
       </ul>
       <button type="button" onClick={start} disabled={starting}>
-        {starting ? "Starting…" : "Start interview"}
+        {starting ? "Starting…" : "Start Interview"}
       </button>
       {error && (
         <p className="error" role="alert">

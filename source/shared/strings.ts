@@ -7,20 +7,22 @@ import { MAX_MESSAGE_CHARS } from "./limits.ts";
 // Notices and status lines, alphabetized.
 export const UI_MESSAGES = {
   bubo_thinking: "Bubo is thinking…",
-  // The warning before End interview ends the session (docs/spec.md, Principles).
+  // The warning before End Interview ends the session (docs/spec.md, Principles).
   end_confirm:
     "End the interview now? Your feedback comes next, based on the conversation so far. Anything you haven't sent won't be included.",
   // Shown above the feedback. Hearing feedback is the hard part, so it opens warmly.
   feedback_intro:
     "You did it. Practicing out loud takes nerve, and every session makes the next one easier. Here's what went well and what to work on next.",
-  // After several failed Retry feedback attempts, with Retry feedback and Start a new interview.
+  // After several failed Retry Feedback attempts, with Retry Feedback and Start a New Interview.
   // A refresh or new session drops this one, so it doesn't promise the feedback comes back.
   feedback_try_new_interview:
     "Your feedback still couldn't be written. You can keep trying, or start a new interview. A new interview ends this one without feedback.",
-  // Shown when the interview ends normally (turn cap or End interview).
+  // Shown when the interview ends normally (turn cap or End Interview).
   interview_complete: "Good job, that's the end of the interview. Your feedback is coming next.",
   // Under a message the server turned away because the interview had already ended.
   not_sent: "Not sent. The interview had already ended, so this message isn't part of your feedback.",
+  // After the feedback, above Practice Again (docs/spec.md, After feedback).
+  thank_you: "Thanks for practicing today. Whenever you're ready, you can start another interview.",
   writing_feedback: "Writing your feedback…",
 } as const;
 

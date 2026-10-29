@@ -10,7 +10,7 @@ Short log of why we chose X. Newest last.
 
 ## 2026-10-27 — session ends by turn cap or user control
 
-**Choice:** Max 12 candidate turns, warn at turn 10, End interview always available, then generate feedback.
+**Choice:** Max 12 candidate turns, warn at turn 10, End Interview always available, then generate feedback.
 
 **Why:** Candidate stays in control; the turn limit binds before the token backstop in typical sessions; feedback is guaranteed.
 
@@ -77,7 +77,7 @@ Short log of why we chose X. Newest last.
 
 ## 2026-10-28 — session store: 30-minute idle expiry, status-based shape
 
-**Choice:** Sessions expire 30 minutes after last activity (create, candidate turn, End interview, feedback request). Expiry is checked on every lookup, and a sweep every 60 seconds frees memory. No absolute max age. A session holds: ID, status (`active` → `feedback_pending` → `done`, with `feedback_failed` allowing feedback retry only), end reason, transcript, candidate turn count, tokens used, the previous call's input and output tokens (for the reserve estimate), a busy flag, and last-activity time. The turn-10 warning is computed, not stored. Feedback text is not stored. (Reversed: feedback is kept until expiry; see "feedback kept in memory" below.)
+**Choice:** Sessions expire 30 minutes after last activity (create, candidate turn, End Interview, feedback request). Expiry is checked on every lookup, and a sweep every 60 seconds frees memory. No absolute max age. A session holds: ID, status (`active` → `feedback_pending` → `done`, with `feedback_failed` allowing feedback retry only), end reason, transcript, candidate turn count, tokens used, the previous call's input and output tokens (for the reserve estimate), a busy flag, and last-activity time. The turn-10 warning is computed, not stored. Feedback text is not stored. (Reversed: feedback is kept until expiry; see "feedback kept in memory" below.)
 
 **Why:** The TTL only reclaims memory; a refresh already ends the session for the user, and a worst-case session is ~0.5 MB. 30 minutes covers reading feedback before a retry. It is not a thinking-time allowance; pause check-ins handle pacing. Checking expiry on lookup makes behavior independent of sweep timing and testable with an injected clock. The busy flag stops a double submit from interleaving two calls.
 
@@ -95,7 +95,7 @@ Short log of why we chose X. Newest last.
 
 ## 2026-10-28 — ending and leaving
 
-**Choice:** End interview asks for confirmation. After the final reply, input locks and feedback starts automatically. The full feedback shows on the same page, then a thank-you and "Practice again." From Start until "Practice again," refresh or tab close triggers the browser's built-in leave-page confirmation.
+**Choice:** End Interview asks for confirmation. After the final reply, input locks and feedback starts automatically. The full feedback shows on the same page, then a thank-you and "Practice Again." From Start until "Practice Again," refresh or tab close triggers the browser's built-in leave-page confirmation. (Updated: see "leave-page warning" below.)
 
 **Why:** A stray click or refresh shouldn't cost a session. Browsers don't allow custom text or modals on refresh or close, so the built-in dialog is the only option there. The feedback screen is covered too, since closing it loses the feedback.
 
@@ -122,7 +122,7 @@ Short log of why we chose X. Newest last.
 **Choice:**
 - If Bubo's reply fails twice, the interview ends (`interviewer_failed`). The candidate's unanswered message stays in the transcript and counts as a turn.
 - If the opening reply fails twice, the session is discarded and the candidate sees a calm "please try again" with Start still available. No feedback runs.
-- End interview works even while Bubo is replying. The reply in progress is dropped; the candidate's last message stays.
+- End Interview works even while Bubo is replying. The reply in progress is dropped; the candidate's last message stays.
 - Every failed interviewer call logs a console warning with the session ID, turn, attempt, and reason (error class, HTTP status, and request ID only, never message text). A reply cut off at `max_tokens` is kept and also logged.
 - If the candidate ends during a failed attempt, the retry is skipped.
 
@@ -147,7 +147,7 @@ Short log of why we chose X. Newest last.
 - It has its own system prompt: `prompts/feedback.md`, the scenario, and the rubric. No persona. The transcript goes in as one labeled block of data, followed by a plain fact about how the interview ended.
 - Feedback is written in a plain, warm coaching voice: honest, with a spoonful of sugar, and no owl touches. The page adds a fixed note of encouragement above it.
 - One attempt per request. A failure (error, refusal, cut-off reply, or missing fields) leaves the session in `feedback_failed`, and the same route can be called again. Feedback is not stored. (Reversed: see "feedback kept in memory" below.)
-- End interview cancels an interviewer call in flight (abort signal through `ModelClient`). The cancelled call isn't logged or retried, and its usage isn't counted because it never arrives.
+- End Interview cancels an interviewer call in flight (abort signal through `ModelClient`). The cancelled call isn't logged or retried, and its usage isn't counted because it never arrives.
 - The dimension list and rating labels are copied into code; a test checks they match `prompts/rubric.md`.
 - **Exception:** "Tone and feedback principles live in docs/spec.md. Link to them; do not restate them" (`.claude/rules/style.md`). `prompts/feedback.md` restates the feedback principles the model must follow, because a prompt can't follow a link.
 
@@ -162,7 +162,7 @@ Short log of why we chose X. Newest last.
 ## 2026-10-29 — feedback retry: a button, offered only when another try can work
 
 **Choice:**
-- When the feedback call fails, the error shows with a **Retry feedback** button that sends the same request again. No automatic retry.
+- When the feedback call fails, the error shows with a **Retry Feedback** button that sends the same request again. No automatic retry.
 - The button is offered only after `feedback_failed`, `feedback_in_progress`, or a request that got no answer. Other errors can't be fixed by asking again.
 - A send that gets 409 `interview_over` shows that message as the end notice and asks for feedback, the same as any other end. The message stays on screen marked "Not sent", since the server never recorded it and the feedback won't include it.
 - Mock mode adds `[mock:feedback-fail-once]`, which fails only the first feedback call for a transcript, so the recovery can be clicked through.
@@ -178,12 +178,24 @@ Short log of why we chose X. Newest last.
 ## 2026-10-29 — feedback after repeated failures: offer a new interview, re-ask once when in progress
 
 **Choice:**
-- After 3 failed Retry feedback attempts (only Retry attempts count, not the automatic first request), a notice suggests a new interview, with a **Start a new interview** button next to **Retry feedback**. The button returns to the landing page. Retry stays.
+- After 3 failed Retry Feedback attempts (only Retry attempts count, not the automatic first request), a notice suggests a new interview, with a **Start a New Interview** button next to **Retry Feedback**. The button returns to the landing page. Retry stays.
 - The notice says a new interview ends this one without feedback. It doesn't promise the feedback comes back.
 - `feedback_in_progress` isn't a failure and doesn't count toward the 3.
-- On `feedback_in_progress`, the client keeps "Writing your feedback…" up, waits 3 seconds, and asks once more on its own. If it's still in progress, it shows the message and Retry feedback as before. This partly reverses "No automatic retry" from the feedback retry entry: that rule still holds for real failures.
+- On `feedback_in_progress`, the client keeps "Writing your feedback…" up, waits 3 seconds, and asks once more on its own. If it's still in progress, it shows the message and Retry Feedback as before. This partly reverses "No automatic retry" from the feedback retry entry: that rule still holds for real failures.
 
 **Why:** From the 2026-10-29 bug bash, case 2: with every retry failing, nothing told the candidate when to stop trying. Keeping Retry leaves the candidate in control, and a brief outage could still clear. Counting `feedback_in_progress` could suggest starting over just as the feedback finishes. The idempotent feedback route hands over the stored feedback once it's done, so one re-ask after a short wait usually gets it without a click. Polling until done would add more moving parts for a rare case.
+
+## 2026-10-29 — leave-page warning: while the session screen is up, not after expiry
+
+**Choice:** The browser's leave-page confirmation runs while the session screen is up: from a successful Start until Practice Again or Start a New Interview returns to the landing page. It turns off once the session has expired (`not_found`). Updates "ending and leaving" (2026-10-28), which said "from Start until Practice Again."
+
+**Why:** Before the opening arrives ("Starting…"), there's nothing to lose yet. Start a New Interview is a second way out that came later. After expiry, the screen tells the candidate to refresh, so a browser prompt asking them not to would contradict it. The dialog can't carry our own text (browsers ignore it), so any "you'll lose your feedback" wording has to live on the page.
+
+## 2026-10-29 — buttons use Title Case
+
+**Choice:** Button labels are Title Case: Start Interview, Send, End Interview, Retry Feedback, Start a New Interview, Practice Again. Headings and messages stay sentence case. Send and End Interview are the same size.
+
+**Why:** Kat's call, made while fixing the End Interview button's size.
 
 ## Open (not decided)
 

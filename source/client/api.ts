@@ -6,7 +6,7 @@ export type StartResult =
   | { ok: false; message: string };
 
 // `ended` means the interview is over and input should lock. `reply` is null when Bubo
-// failed twice (`message` says so) or End interview dropped the reply. On a failure,
+// failed twice (`message` says so) or End Interview dropped the reply. On a failure,
 // `feedbackNext` means the interview had already ended but the session is still there,
 // so feedback can still be asked for.
 export type TurnResult =
@@ -26,8 +26,8 @@ const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
 
 // Feedback errors that another request could get past.
 const RETRYABLE_FEEDBACK_ERRORS = new Set(["feedback_failed", "feedback_in_progress"]);
-// Spec, Failure Handling: after this many failed Retry feedback attempts, also offer a new
-// interview. Retry feedback stays.
+// Spec, Failure Handling: after this many failed Retry Feedback attempts, also offer a new
+// interview. Retry Feedback stays.
 export const RETRIES_BEFORE_NEW_INTERVIEW = 3;
 
 // After feedback_in_progress, ask once more on our own after this long.
@@ -95,7 +95,7 @@ export async function sendTurn(sessionId: string, message: string): Promise<Turn
   return { ok: false, message: ERROR_MESSAGES.send_failed, ended: false, feedbackNext: false };
 }
 
-// Ends the interview (End interview, after the candidate confirms).
+// Ends the interview (End Interview, after the candidate confirms).
 export async function endSession(sessionId: string): Promise<EndResult> {
   try {
     const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/end`, {

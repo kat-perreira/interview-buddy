@@ -59,11 +59,11 @@ async function endInterview() {
   await send("Last answer");
 }
 
-// Clicks End interview and answers the confirm. Lets the end request settle.
+// Clicks End Interview and answers the confirm. Lets the end request settle.
 async function clickEnd(confirmed = true) {
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(confirmed);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "End Interview" }));
   });
   return confirm;
 }
@@ -71,9 +71,17 @@ async function clickEnd(confirmed = true) {
 async function clickRetry(times = 1) {
   for (let i = 0; i < times; i++) {
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Retry feedback" }));
+      fireEvent.click(screen.getByRole("button", { name: "Retry Feedback" }));
     });
   }
+}
+
+// Fires the event the browser sends on refresh or tab close. Returns whether the page asked
+// to warn first.
+function leavePageWarns() {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
 }
 
 beforeEach(() => {
@@ -96,7 +104,7 @@ describe("Session", () => {
     expect(REASK_DELAY_MS).toBe(3000);
   });
 
-  it("offers Retry feedback on a retryable failure and shows the feedback once it works", async () => {
+  it("offers Retry Feedback on a retryable failure and shows the feedback once it works", async () => {
     requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_FAILED).mockResolvedValueOnce(FEEDBACK_OK);
     renderSession();
 
@@ -107,11 +115,11 @@ describe("Session", () => {
     await clickRetry();
     expect(requestFeedbackMock).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Retry feedback" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry Feedback" })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("doesn't offer Retry feedback when another try can't help", async () => {
+  it("doesn't offer Retry Feedback when another try can't help", async () => {
     requestFeedbackMock.mockResolvedValueOnce({
       ok: false,
       message: ERROR_MESSAGES.not_found,
@@ -121,7 +129,7 @@ describe("Session", () => {
 
     await endInterview();
     expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.not_found);
-    expect(screen.queryByRole("button", { name: "Retry feedback" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry Feedback" })).toBeNull();
   });
 
   it("marks a message turned away with interview_over as Not sent and asks for feedback", async () => {
@@ -144,7 +152,7 @@ describe("Session", () => {
     expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
   });
 
-  it("offers Start a new interview after enough failed retries, and keeps Retry feedback", async () => {
+  it("offers Start a New Interview after enough failed retries, and keeps Retry Feedback", async () => {
     requestFeedbackMock.mockResolvedValue(FEEDBACK_FAILED);
     const onNewInterview = renderSession();
 
@@ -152,13 +160,13 @@ describe("Session", () => {
     await endInterview();
     await clickRetry(RETRIES_BEFORE_NEW_INTERVIEW - 1);
     expect(screen.queryByText(UI_MESSAGES.feedback_try_new_interview)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Start a new interview" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start a New Interview" })).toBeNull();
 
     await clickRetry();
     expect(screen.getByText(UI_MESSAGES.feedback_try_new_interview)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Retry feedback" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry Feedback" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start a new interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start a New Interview" }));
     expect(onNewInterview).toHaveBeenCalledTimes(1);
   });
 
@@ -176,19 +184,19 @@ describe("Session", () => {
     await clickRetry();
     await act(() => vi.advanceTimersByTimeAsync(REASK_DELAY_MS));
     expect(requestFeedbackMock).toHaveBeenCalledTimes(3);
-    expect(screen.getByRole("button", { name: "Retry feedback" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry Feedback" })).toBeTruthy();
 
     // Counting the in-progress retry, this would be enough.
     await clickRetry(RETRIES_BEFORE_NEW_INTERVIEW - 1);
     expect(screen.queryByText(UI_MESSAGES.feedback_try_new_interview)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Start a new interview" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start a New Interview" })).toBeNull();
 
     await clickRetry();
     expect(screen.getByText(UI_MESSAGES.feedback_try_new_interview)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Start a new interview" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start a New Interview" })).toBeTruthy();
   });
 
-  it("counts only Retry feedback failures, even when the automatic request ends in progress", async () => {
+  it("counts only Retry Feedback failures, even when the automatic request ends in progress", async () => {
     vi.useFakeTimers();
     requestFeedbackMock
       .mockResolvedValueOnce(FEEDBACK_IN_PROGRESS)
@@ -199,11 +207,11 @@ describe("Session", () => {
     await endInterview();
     await act(() => vi.advanceTimersByTimeAsync(REASK_DELAY_MS));
     await clickRetry(RETRIES_BEFORE_NEW_INTERVIEW - 1);
-    expect(screen.queryByRole("button", { name: "Start a new interview" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start a New Interview" })).toBeNull();
 
     await clickRetry();
     expect(screen.getByText(UI_MESSAGES.feedback_try_new_interview)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Start a new interview" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start a New Interview" })).toBeTruthy();
   });
 
   it("re-asks once, a short wait after feedback_in_progress", async () => {
@@ -224,7 +232,7 @@ describe("Session", () => {
     expect(screen.queryByText(UI_MESSAGES.writing_feedback)).toBeNull();
   });
 
-  it("re-asks only once, then offers Retry feedback if it's still in progress", async () => {
+  it("re-asks only once, then offers Retry Feedback if it's still in progress", async () => {
     vi.useFakeTimers();
     requestFeedbackMock.mockResolvedValue(FEEDBACK_IN_PROGRESS);
     renderSession();
@@ -233,7 +241,7 @@ describe("Session", () => {
     await act(() => vi.advanceTimersByTimeAsync(REASK_DELAY_MS * 3));
     expect(requestFeedbackMock).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.feedback_in_progress);
-    expect(screen.getByRole("button", { name: "Retry feedback" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry Feedback" })).toBeTruthy();
   });
 
   it("locks input and starts feedback after Bubo's final reply", async () => {
@@ -243,12 +251,12 @@ describe("Session", () => {
     await endInterview();
     expect(screen.getByText("Thanks!")).toBeTruthy();
     expect(screen.queryByLabelText("Your response")).toBeNull();
-    expect(screen.queryByRole("button", { name: "End interview" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "End Interview" })).toBeNull();
     expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
   });
 
-  it("asks before End interview and keeps going if the candidate cancels", async () => {
+  it("asks before End Interview and keeps going if the candidate cancels", async () => {
     renderSession();
 
     const confirm = await clickEnd(false);
@@ -288,6 +296,26 @@ describe("Session", () => {
     await act(async () => finishTurn({ ok: true, reply: null, ended: true, message: null }));
     expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("doesn't ask for feedback when End and the dropped turn both find the session expired", async () => {
+    let finishTurn: (result: TurnResult) => void = () => {};
+    sendTurnMock.mockReturnValueOnce(new Promise((resolve) => (finishTurn = resolve)));
+    endSessionMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.not_found,
+      error: "not_found",
+    });
+    renderSession();
+
+    await send("Half an answer");
+    await clickEnd();
+    await act(async () =>
+      finishTurn({ ok: false, message: ERROR_MESSAGES.not_found, ended: true, feedbackNext: false }),
+    );
+    expect(requestFeedbackMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.not_found);
+    expect(leavePageWarns()).toBe(false);
   });
 
   it("keeps the interview going and shows the message when ending fails", async () => {
@@ -376,5 +404,80 @@ describe("Session", () => {
     expect(screen.getByText("Thanks!")).toBeTruthy();
     expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("shows a thank-you and Practice Again after the feedback", async () => {
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    const onNewInterview = renderSession();
+    expect(screen.queryByRole("button", { name: "Practice Again" })).toBeNull();
+
+    await endInterview();
+    expect(screen.getByText(UI_MESSAGES.thank_you)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Practice Again" }));
+    expect(onNewInterview).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't offer Practice Again while feedback has failed", async () => {
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_FAILED);
+    renderSession();
+
+    await endInterview();
+    expect(screen.queryByText(UI_MESSAGES.thank_you)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Practice Again" })).toBeNull();
+  });
+
+  it("warns before leaving the page from Start until the session is gone", async () => {
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+    expect(leavePageWarns()).toBe(true);
+
+    // Still warns with the feedback showing: a refresh would lose it.
+    await endInterview();
+    expect(leavePageWarns()).toBe(true);
+
+    // Practice Again and Start a New Interview leave by unmounting the session (App.test.tsx clicks Practice Again).
+    cleanup();
+    expect(leavePageWarns()).toBe(false);
+  });
+
+  it("stops warning before leaving once the session has expired", async () => {
+    const NOT_FOUND = { ok: false, message: ERROR_MESSAGES.not_found, error: "not_found" } as const;
+
+    // During feedback.
+    requestFeedbackMock.mockResolvedValueOnce(NOT_FOUND);
+    renderSession();
+    await endInterview();
+    expect(leavePageWarns()).toBe(false);
+    cleanup();
+
+    // On End Interview.
+    endSessionMock.mockResolvedValueOnce(NOT_FOUND);
+    renderSession();
+    await clickEnd();
+    expect(leavePageWarns()).toBe(false);
+    cleanup();
+
+    // On a send.
+    sendTurnMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.not_found,
+      ended: true,
+      feedbackNext: false,
+    });
+    renderSession();
+    await send("Hello?");
+    expect(leavePageWarns()).toBe(false);
+  });
+
+  it("keeps warning before leaving when only a send failed", async () => {
+    sendTurnMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.send_failed,
+      ended: false,
+      feedbackNext: false,
+    });
+    renderSession();
+    await send("Hello?");
+    expect(leavePageWarns()).toBe(true);
   });
 });

@@ -34,9 +34,11 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   // The last feedback request failed in a way another try could fix.
   const [offerRetry, setOfferRetry] = useState(false);
-  // Retry feedback attempts that failed. The automatic first request doesn't count, and
+  // Retry Feedback attempts that failed. The automatic first request doesn't count, and
   // still being written (feedback_in_progress) isn't a failure.
   const [retryFailures, setRetryFailures] = useState(0);
+  // The server no longer has this session (not_found), so leaving can't lose anything.
+  const [expired, setExpired] = useState(false);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -58,6 +60,20 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   useEffect(() => {
     if (turns.length > 1 || waiting) bottomRef.current?.scrollIntoView({ block: "end" });
   }, [turns.length, waiting, writingFeedback]);
+
+  // The browser's own leave-page confirmation while this session is on screen, from Start
+  // until Practice Again, unless it has expired (docs/spec.md, Leaving). Browsers ignore
+  // custom text here.
+  useEffect(() => {
+    if (expired) return;
+    function warn(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      // Older browsers ignore preventDefault and prompt only on a non-empty returnValue.
+      e.returnValue = true;
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [expired]);
 
   // Feedback arrived: move focus to its heading, which also scrolls it into view.
   useEffect(() => {
@@ -90,7 +106,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     setWaiting(false);
     sendingRef.current = false;
 
-    // End interview landed while this turn was out, so feedback is this handler's to ask for
+    // End Interview landed while this turn was out, so feedback is this handler's to ask for
     // (docs/flow.md, Ending mid-reply). The reply is usually dropped, but if Bubo's final
     // reply finished before End arrived, it's kept.
     if (endedRef.current) {
@@ -99,7 +115,9 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         if (reply !== null) setTurns((t) => [...t, { speaker: "bubo", text: reply }]);
         if (result.message) setNotice(result.message);
       }
-      void loadFeedback();
+      // The session is gone (not_found), so there's no feedback to ask for.
+      if (!result.ok && result.ended && !result.feedbackNext) setExpired(true);
+      else void loadFeedback();
       return;
     }
 
@@ -119,7 +137,9 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         setDraft(message);
       }
       if (result.ended) lockInput();
-      // Ended some other way (End interview, say) with the session still there: feedback is next.
+      // Ended with no session left (not_found): the screen says to refresh, so don't warn.
+      if (result.ended && !result.feedbackNext) setExpired(true);
+      // Ended some other way (End Interview, say) with the session still there: feedback is next.
       if (result.feedbackNext) {
         setTurns((t) => [...t.slice(0, -1), { speaker: "you", text: message, notSent: true }]);
         setNotice(result.message);
@@ -133,7 +153,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     else inputRef.current?.focus();
   }
 
-  // End interview, after the candidate confirms. Allowed while Bubo is replying: the server
+  // End Interview, after the candidate confirms. Allowed while Bubo is replying: the server
   // drops that reply, and send() asks for feedback once its result arrives (docs/flow.md,
   // Ending mid-reply). Asking here too would get feedback_in_progress.
   async function end() {
@@ -149,6 +169,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     if (!result.ok && result.error === "not_found") {
       // The session expired, so there's no feedback to ask for.
       lockInput();
+      setExpired(true);
       setError(result.message);
       headingRef.current?.focus();
       return;
@@ -167,10 +188,10 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   }
 
   // Called from the handlers that end the interview, not an effect, so StrictMode's
-  // double-run in dev can't send two feedback requests. Retry feedback calls it again
+  // double-run in dev can't send two feedback requests. Retry Feedback calls it again
   // with `isRetry`, so only its failures count toward offering a new interview.
   async function loadFeedback(isRetry = false) {
-    // A ref, so a double click on Retry feedback can't send two requests.
+    // A ref, so a double click on Retry Feedback can't send two requests.
     if (feedbackRequestedRef.current) return;
     feedbackRequestedRef.current = true;
     setError(null);
@@ -191,9 +212,10 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     if (isRetry && !result.ok && result.error !== "feedback_in_progress") {
       setRetryFailures((n) => n + 1);
     }
+    if (!result.ok && result.error === "not_found") setExpired(true);
     if (result.ok) setFeedback(result.feedback);
     else setError(result.message);
-    // Retry feedback unmounts on a final failure; move focus to the heading, not <body>.
+    // Retry Feedback unmounts on a final failure; move focus to the heading, not <body>.
     if (!result.ok && !retryable) headingRef.current?.focus();
   }
 
@@ -234,7 +256,17 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         </p>
       )}
 
-      {feedback && <FeedbackView feedback={feedback} headingRef={feedbackHeadingRef} />}
+      {feedback && (
+        <>
+          <FeedbackView feedback={feedback} headingRef={feedbackHeadingRef} />
+          <p className="notice">{UI_MESSAGES.thank_you}</p>
+          <div className="actions">
+            <button type="button" onClick={onNewInterview}>
+              Practice Again
+            </button>
+          </div>
+        </>
+      )}
 
       {!ended && (
         <form
@@ -264,13 +296,15 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
               {length.toLocaleString("en-US")} / {MAX_MESSAGE_CHARS.toLocaleString("en-US")} · Cmd
               or Ctrl+Enter to send
             </p>
-            <button type="submit" disabled={waiting}>
-              Send
-            </button>
-            {/* Not disabled while Bubo replies: the candidate can always end (docs/spec.md). */}
-            <button type="button" onClick={() => void end()}>
-              End interview
-            </button>
+            <div className="composer-buttons">
+              <button type="submit" disabled={waiting}>
+                Send
+              </button>
+              {/* Not disabled while Bubo replies: the candidate can always end (docs/spec.md). */}
+              <button type="button" onClick={() => void end()}>
+                End Interview
+              </button>
+            </div>
           </div>
           {tooLong && (
             <p id="message-too-long" className="error" role="status">
@@ -300,7 +334,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
             aria-disabled={writingFeedback}
             onClick={() => void loadFeedback(true)}
           >
-            Retry feedback
+            Retry Feedback
           </button>
           {/* Inactive while a retry runs, so leaving can't strand a feedback call in flight. */}
           {retryFailures >= RETRIES_BEFORE_NEW_INTERVIEW && (
@@ -311,7 +345,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
                 if (!writingFeedback) onNewInterview();
               }}
             >
-              Start a new interview
+              Start a New Interview
             </button>
           )}
         </div>

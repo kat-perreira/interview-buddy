@@ -32,7 +32,7 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
   };
 
   // `busy` blocks a second message while a model call is in flight.
-  // `abortCall` lets End interview cancel it.
+  // `abortCall` lets End Interview cancel it.
   const withBusy = async <T>(
     session: Session,
     call: (signal: AbortSignal) => Promise<T>,
@@ -107,7 +107,7 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     );
     store.touch(session);
 
-    // The candidate pressed End interview while Bubo was replying: drop the reply.
+    // The candidate pressed End Interview while Bubo was replying: drop the reply.
     if (session.status !== "active") return c.json({ reply: null, ...state(session) });
 
     // Failed twice: end here. The unanswered message stays and counts as a turn.
@@ -121,7 +121,7 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     return c.json({ reply, ...state(session) });
   });
 
-  // End interview. Always allowed while active, even mid-reply (the client confirms first).
+  // End Interview. Always allowed while active, even mid-reply (the client confirms first).
   // A reply in progress is cancelled so the dropped reply stops costing tokens.
   app.post("/sessions/:id/end", (c) => {
     const session = store.get(c.req.param("id"));
@@ -145,7 +145,7 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
       store.touch(session);
       return c.json({ feedback: session.feedback, ...state(session) });
     }
-    // Also covers a dropped interviewer reply that hasn't settled yet after End interview.
+    // Also covers a dropped interviewer reply that hasn't settled yet after End Interview.
     if (session.busy) return c.json(error("feedback_in_progress"), 409);
 
     const feedback = await withBusy(session, () => callFeedback(modelClient, feedbackPrompt, session));

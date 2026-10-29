@@ -34,5 +34,5 @@ Every call uses the one model ID in `config.ts`. No sampling parameters are sent
 - `kind` is the only thing that picks per-call settings. A new kind of call needs a row in `SETTINGS` in `anthropic.ts`.
 - SDK retries are off. The session decides whether to retry (interviewer: once; feedback: no, the candidate retries).
 - Refusals are normal results, not errors. The session treats them as a failed reply.
-- Aborting the signal (End interview mid-reply) makes the call reject. Its usage never arrives, so it isn't counted.
+- Aborting the signal (End Interview mid-reply) makes the call reject. Its usage never arrives, so it isn't counted.
 - Logs never include message text, since API errors can quote it.

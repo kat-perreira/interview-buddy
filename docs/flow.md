@@ -19,9 +19,9 @@ stateDiagram-v2
     active --> feedback_pending: interview ends
     feedback_pending --> done: feedback shown
     feedback_pending --> feedback_failed: feedback call fails
-    feedback_failed --> feedback_pending: Retry feedback
-    feedback_failed --> landing: Start a new interview (after 3 failed retries)
-    done --> landing: Practice again
+    feedback_failed --> feedback_pending: Retry Feedback
+    feedback_failed --> landing: Start a New Interview (after 3 failed retries)
+    done --> landing: Practice Again
 ```
 
 ## How the interview ends
@@ -30,7 +30,7 @@ Each path sets the session's `endReason`, then feedback runs.
 
 | `endReason` | Trigger |
 | --- | --- |
-| `candidate` | End interview, confirmed (available anywhere in `active`; a reply in progress is cancelled and dropped) |
+| `candidate` | End Interview, confirmed (available anywhere in `active`; a reply in progress is cancelled and dropped) |
 | `turn_cap` | Bubo's closing reply to turn 12 finishes |
 | `token_cap` | The token check before a call fails |
 | `paused_too_long` | 30 minutes in `paused` |
@@ -38,7 +38,7 @@ Each path sets the session's `endReason`, then feedback runs.
 
 ## Ending mid-reply
 
-End interview while Bubo is replying. Feedback is requested once, by whichever response arrives with nothing still in flight. If End gets 409 `interview_over` (the interview ended another way first), the client treats it as ended the same way. Whichever of the two responses arrives second does nothing more, and a final reply that finished first stays in the transcript.
+End Interview while Bubo is replying. Feedback is requested once, by whichever response arrives with nothing still in flight. If End gets 409 `interview_over` (the interview ended another way first), the client treats it as ended the same way. If the session has expired (`not_found`), nothing asks for feedback. Whichever of the two responses arrives second does nothing more, and a final reply that finished first stays in the transcript.
 
 ```mermaid
 sequenceDiagram
@@ -74,9 +74,9 @@ If the client asked for feedback before the turn result arrived, the server woul
 
 - The client asks for feedback as soon as the interview ends. The server makes one feedback call per request.
 - Success stores the feedback on the session (in memory, until it expires), moves it to `done`, and returns the feedback. Any failure moves it to `feedback_failed`, where the same request can be made again.
-- On `feedback_failed`, `feedback_in_progress`, or no answer at all, the client shows **Retry feedback**. `not_found` (the session expired) can't be fixed by asking again, so there is no button.
-- On `feedback_in_progress`, the client first waits 3 seconds and asks once more on its own, with "Writing your feedback…" still showing. Retry feedback appears only if that answer is also a failure or still in progress.
-- After 3 failed Retry feedback attempts, a notice suggests a new interview and **Start a new interview** appears next to Retry feedback; it returns to the landing page and drops this session. `feedback_in_progress` doesn't count as a failure.
+- On `feedback_failed`, `feedback_in_progress`, or no answer at all, the client shows **Retry Feedback**. `not_found` (the session expired) can't be fixed by asking again, so there is no button.
+- On `feedback_in_progress`, the client first waits 3 seconds and asks once more on its own, with "Writing your feedback…" still showing. Retry Feedback appears only if that answer is also a failure or still in progress.
+- After 3 failed Retry Feedback attempts, a notice suggests a new interview and **Start a New Interview** appears next to Retry Feedback; it returns to the landing page and drops this session. `feedback_in_progress` doesn't count as a failure.
 - A send that gets 409 `interview_over` shows that message as the end notice, marks the message "Not sent", and asks for feedback.
 
 ### Retrying safely: the feedback request is idempotent
@@ -95,7 +95,7 @@ sequenceDiagram
     M-->>S: feedback JSON
     Note over S: store feedback, status done
     S--xC: response lost (network drop)
-    Note over C: shows error and Retry feedback
+    Note over C: shows error and Retry Feedback
     C->>S: POST /feedback (Retry)
     Note over S: feedback already stored, no model call
     S-->>C: same feedback, status done
@@ -106,7 +106,7 @@ What the server answers depends only on the session, never on how many times it 
 | Session when the request arrives | Answer | Client |
 | --- | --- | --- |
 | `active` | 409 `feedback_not_ready` | No button |
-| Feedback call in flight (`busy`) | 409 `feedback_in_progress` | Asks again once after 3 seconds, then Retry feedback |
+| Feedback call in flight (`busy`) | 409 `feedback_in_progress` | Asks again once after 3 seconds, then Retry Feedback |
 | `feedback_pending` or `feedback_failed`, nothing in flight | New feedback call | Shows feedback, or the error and Retry |
 | `done` (feedback stored) | 200, the stored feedback | Shows feedback |
 | Expired | 404 `not_found` | No button |
@@ -142,4 +142,4 @@ The server adds a turn note to every candidate message, with a marker on the tur
 
 ## Leaving
 
-A refresh or tab close ends the session from any state; the browser asks first, from Start until Practice again. The server drops the abandoned session on idle expiry.
+A refresh or tab close ends the session from any state. The browser asks first (its own wording, no custom text) the whole time the session screen is up: from a successful Start until Practice Again or Start a New Interview returns to the landing page. Once the session has expired (`not_found`), it doesn't ask. The server drops the abandoned session on idle expiry.

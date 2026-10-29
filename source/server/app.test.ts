@@ -437,7 +437,7 @@ describe("POST /api/sessions/:id/end", () => {
 });
 
 describe("POST /api/sessions/:id/feedback", () => {
-  // Plays the opening and one turn, then ends the interview with End interview.
+  // Plays the opening and one turn, then ends the interview with End Interview.
   async function endedSession(feedbackSteps: MockStep[] = [feedbackStep()]) {
     const ctx = setup({ steps: [{ text: "Opening." }, { text: "Reply." }, ...feedbackSteps] });
     const id = await start(ctx.app);

@@ -131,10 +131,27 @@ textarea:focus-visible {
 
 .composer-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-top: 0.5rem;
+}
+
+/* The hint takes the spare width; on narrow screens the buttons wrap below it. */
+.composer-row .hint {
+  flex: 1 1 12rem;
+}
+
+/* Equal columns, so Send matches End Interview's width. */
+.composer-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.composer-buttons button {
+  white-space: nowrap;
 }
 
 .hint {

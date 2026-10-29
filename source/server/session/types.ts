@@ -31,7 +31,7 @@ export interface Session {
   lastCall: { input: number; output: number } | null;
   // A model call is in flight; blocks a second message from interleaving.
   busy: boolean;
-  // Cancels the call in flight, so End interview can stop a reply it will drop.
+  // Cancels the call in flight, so End Interview can stop a reply it will drop.
   abortCall: AbortController | null;
   // When the candidate paused, or null if not paused. Paused sessions expire later.
   pausedAt: number | null;
