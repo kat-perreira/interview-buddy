@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockFeedback } from "../server/model/mock.ts";
 import { ERROR_MESSAGES } from "../shared/strings.ts";
-import { endSession, requestFeedback, sendTurn, startSession } from "./api.ts";
+import { canRetryFeedback, endSession, requestFeedback, sendTurn, startSession } from "./api.ts";
 
 function stubFetch(impl: () => Promise<Response>) {
   const fetchMock = vi.fn(impl);
@@ -214,25 +214,19 @@ describe("requestFeedback", () => {
     expect(await requestFeedback("abc")).toEqual({
       ok: false,
       message: "Server says try again.",
-      retryable: true,
+      error: "feedback_failed",
     });
   });
 
-  it("can be retried while another request is writing the feedback", async () => {
+  it("passes the error code through while another request is writing the feedback", async () => {
     stubFetch(async () =>
       Response.json({ error: "feedback_in_progress", message: "Being written." }, { status: 409 }),
     );
 
-    expect(await requestFeedback("abc")).toMatchObject({ ok: false, retryable: true });
-  });
-
-  it.each(["interview_over", "not_found", "feedback_not_ready"])("can't be retried after %s", async (code) => {
-    stubFetch(async () => Response.json({ error: code, message: "No more feedback." }, { status: 409 }));
-
     expect(await requestFeedback("abc")).toEqual({
       ok: false,
-      message: "No more feedback.",
-      retryable: false,
+      message: "Being written.",
+      error: "feedback_in_progress",
     });
   });
 
@@ -242,7 +236,7 @@ describe("requestFeedback", () => {
     expect(await requestFeedback("abc")).toEqual({
       ok: false,
       message: ERROR_MESSAGES.feedback_failed,
-      retryable: true,
+      error: null,
     });
   });
 
@@ -254,7 +248,17 @@ describe("requestFeedback", () => {
     expect(await requestFeedback("abc")).toEqual({
       ok: false,
       message: ERROR_MESSAGES.feedback_failed,
-      retryable: true,
+      error: null,
     });
+  });
+});
+
+describe("canRetryFeedback", () => {
+  it.each(["feedback_failed", "feedback_in_progress", null])("allows a retry after %s", (error) => {
+    expect(canRetryFeedback(error)).toBe(true);
+  });
+
+  it.each(["interview_over", "not_found", "feedback_not_ready"])("can't retry after %s", (error) => {
+    expect(canRetryFeedback(error)).toBe(false);
   });
 });

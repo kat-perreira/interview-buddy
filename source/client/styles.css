@@ -106,6 +106,12 @@ h2[tabindex="-1"]:focus {
   margin-top: 2rem;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 textarea {
   display: block;
   width: 100%;

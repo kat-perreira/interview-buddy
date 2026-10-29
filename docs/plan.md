@@ -27,9 +27,9 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Display interviewer and candidate turns (full replies; streaming comes later)
 - [x] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens; show a notice when the turn cap ends the interview (the input currently just disappears)
 - [x] Show a clear path to retry feedback if that call fails, and when a send finds the interview already ended (409 `interview_over`); tests for the feedback retry path (server and `api.ts`)
-- [ ] Component tests for the Session screen (add `@testing-library/react` and `jsdom`): Retry feedback appears on a retryable failure and recovers; a message turned away with `interview_over` shows "Not sent"
+- [ ] Component tests for the Session screen (add `@testing-library/react` and `jsdom`): Retry feedback appears on a retryable failure and recovers; a message turned away with `interview_over` shows "Not sent"; Start a new interview appears after 3 failed retries (not counting `feedback_in_progress`); `feedback_in_progress` re-asks once after 3 seconds
 - [ ] Confirm before End interview; lock input and start feedback after the final reply
-- [ ] After 3 failed Retry feedback attempts, suggest starting a new interview (a refresh ends the session, so don't promise the feedback comes back). Needs a spec line and a `docs/decisions.md` entry; consider together with the open question on re-asking after `feedback_in_progress`. From the 2026-10-29 bug bash, case 2.
+- [x] After 3 failed Retry feedback attempts, suggest starting a new interview (a refresh ends the session, so don't promise the feedback comes back). Needs a spec line and a `docs/decisions.md` entry; consider together with the open question on re-asking after `feedback_in_progress`. From the 2026-10-29 bug bash, case 2.
 - [ ] After feedback: thank-you and "Practice again"; browser leave-page warning from Start until then
 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
@@ -41,6 +41,7 @@ First testable loop is reached here: click through with `MODEL_CLIENT=mock`, the
 - [ ] Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)
 - [ ] Log the turn count to the browser console in dev builds only
 - [ ] Derive `busy` from `abortCall` in the session (one source for "a call is in flight")
+- [ ] Fit and finish, once functionality is at a high enough quality: a UI cleanup pass. Known so far: focus drops to `<body>` after Start a new interview (Landing never moves focus); an expired session (`not_found`) during feedback has no button, only the "refresh the page" message.
 - [ ] Manual tone review of a few transcripts (include: does Bubo work in the turn-10 warning and final close naturally? Does she follow the pacing guide without mentioning turn numbers?)
 
 ## Later (not v1)

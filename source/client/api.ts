@@ -15,17 +15,22 @@ export type TurnResult =
 
 export type EndResult = { ok: true } | { ok: false; message: string };
 
-// `retryable` is true when asking again could succeed: the call failed or was still
-// running, or the request never got an answer.
+// `error` is the server's error code, or null when the request got no usable answer.
 export type FeedbackResult =
   | { ok: true; feedback: Feedback }
-  | { ok: false; message: string; retryable: boolean };
+  | { ok: false; message: string; error: string | null };
 
 // Request errors that mean the session can't take more turns.
 const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
 
 // Feedback errors that another request could get past.
 const RETRYABLE_FEEDBACK_ERRORS = new Set(["feedback_failed", "feedback_in_progress"]);
+
+// True when asking for feedback again could succeed: the call failed or was still running,
+// or the request got no usable answer.
+export function canRetryFeedback(error: string | null): boolean {
+  return error === null || RETRYABLE_FEEDBACK_ERRORS.has(error);
+}
 
 // Calls below never throw: failures come back as a message to show, the server's own
 // when it sent one, otherwise the fallback.
@@ -109,10 +114,14 @@ export async function requestFeedback(sessionId: string): Promise<FeedbackResult
       const feedback = parseFeedback(body?.feedback);
       if (feedback) return { ok: true, feedback };
     } else if (typeof body?.message === "string") {
-      return { ok: false, message: body.message, retryable: RETRYABLE_FEEDBACK_ERRORS.has(body.error) };
+      return {
+        ok: false,
+        message: body.message,
+        error: typeof body.error === "string" ? body.error : null,
+      };
     }
   } catch {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
-  return { ok: false, message: ERROR_MESSAGES.feedback_failed, retryable: true };
+  return { ok: false, message: ERROR_MESSAGES.feedback_failed, error: null };
 }

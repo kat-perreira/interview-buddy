@@ -10,6 +10,10 @@ export const UI_MESSAGES = {
   // Shown above the feedback. Hearing feedback is the hard part, so it opens warmly.
   feedback_intro:
     "You did it. Practicing out loud takes nerve, and every session makes the next one easier. Here's what went well and what to work on next.",
+  // After several failed Retry feedback attempts, with Retry feedback and Start a new interview.
+  // A refresh or new session drops this one, so it doesn't promise the feedback comes back.
+  feedback_try_new_interview:
+    "Your feedback still couldn't be written. You can keep trying, or start a new interview. A new interview ends this one without feedback.",
   // Shown when the interview ends normally (turn cap or End interview).
   interview_complete: "Good job, that's the end of the interview. Your feedback is coming next.",
   // Under a message the server turned away because the interview had already ended.
@@ -32,7 +36,8 @@ export const ERROR_MESSAGES = {
   // Sent with a turn result when Bubo's reply failed twice and the interview ended.
   interviewer_failed:
     "Something went wrong on our side, so the interview ends here. Your feedback is next, based on your responses.",
-  not_found: "This session has ended. Start a new one to keep practicing.",
+  not_found:
+    "This session has ended. To keep practicing, refresh the page. That starts a new interview from the beginning.",
   // Client-only.
   send_failed: "Your message didn't reach Bubo. Please try sending it again.",
   start_failed: "Bubo couldn't start the interview just now. Please try again.",

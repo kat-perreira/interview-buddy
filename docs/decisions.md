@@ -175,6 +175,16 @@ Short log of why we chose X. Newest last.
 
 **Why:** If the response is lost after the server marks the session `done` (network drop), the retry would otherwise find the feedback gone, after paying for it. Returning the same answer to the same request is the standard fix for lost responses and duplicate requests (an idempotent request). It also covers a repeat request racing one in flight: once the first finishes, a retry gets its result. The spec's "no saved history" and "no persisted transcripts" still hold: the feedback lives only as long as the session. Kat sees stored feedback as where the project is heading.
 
+## 2026-10-29 — feedback after repeated failures: offer a new interview, re-ask once when in progress
+
+**Choice:**
+- After 3 failed Retry feedback attempts (4 failed requests, counting the automatic first one), a notice suggests a new interview, with a **Start a new interview** button next to **Retry feedback**. The button returns to the landing page. Retry stays.
+- The notice says a new interview ends this one without feedback. It doesn't promise the feedback comes back.
+- `feedback_in_progress` isn't a failure and doesn't count toward the 3.
+- On `feedback_in_progress`, the client keeps "Writing your feedback…" up, waits 3 seconds, and asks once more on its own. If it's still in progress, it shows the message and Retry feedback as before. This partly reverses "No automatic retry" from the feedback retry entry: that rule still holds for real failures.
+
+**Why:** From the 2026-10-29 bug bash, case 2: with every retry failing, nothing told the candidate when to stop trying. Keeping Retry leaves the candidate in control, and a brief outage could still clear. Counting `feedback_in_progress` could suggest starting over just as the feedback finishes. The idempotent feedback route hands over the stored feedback once it's done, so one re-ask after a short wait usually gets it without a click. Polling until done would add more moving parts for a rare case.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

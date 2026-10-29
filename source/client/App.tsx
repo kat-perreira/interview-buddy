@@ -15,5 +15,12 @@ export function App() {
     );
   }
 
-  return <Session key={view.sessionId} sessionId={view.sessionId} opening={view.opening} />;
+  return (
+    <Session
+      key={view.sessionId}
+      sessionId={view.sessionId}
+      opening={view.opening}
+      onNewInterview={() => setView({ screen: "landing" })}
+    />
+  );
 }

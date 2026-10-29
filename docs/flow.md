@@ -20,6 +20,7 @@ stateDiagram-v2
     feedback_pending --> done: feedback shown
     feedback_pending --> feedback_failed: feedback call fails
     feedback_failed --> feedback_pending: Retry feedback
+    feedback_failed --> landing: Start a new interview (after 3 failed retries)
     done --> landing: Practice again
 ```
 
@@ -74,6 +75,8 @@ If the client asked for feedback before the turn result arrived, the server woul
 - The client asks for feedback as soon as the interview ends. The server makes one feedback call per request.
 - Success stores the feedback on the session (in memory, until it expires), moves it to `done`, and returns the feedback. Any failure moves it to `feedback_failed`, where the same request can be made again.
 - On `feedback_failed`, `feedback_in_progress`, or no answer at all, the client shows **Retry feedback**. `not_found` (the session expired) can't be fixed by asking again, so there is no button.
+- On `feedback_in_progress`, the client first waits 3 seconds and asks once more on its own, with "Writing your feedback…" still showing. Retry feedback appears only if that answer is also a failure or still in progress.
+- After 3 failed Retry feedback attempts, a notice suggests a new interview and **Start a new interview** appears next to Retry feedback; it returns to the landing page and drops this session. `feedback_in_progress` doesn't count as a failure.
 - A send that gets 409 `interview_over` shows that message as the end notice, marks the message "Not sent", and asks for feedback.
 
 ### Retrying safely: the feedback request is idempotent
@@ -103,7 +106,7 @@ What the server answers depends only on the session, never on how many times it 
 | Session when the request arrives | Answer | Client |
 | --- | --- | --- |
 | `active` | 409 `feedback_not_ready` | No button |
-| Feedback call in flight (`busy`) | 409 `feedback_in_progress` | Retry feedback |
+| Feedback call in flight (`busy`) | 409 `feedback_in_progress` | Asks again once after 3 seconds, then Retry feedback |
 | `feedback_pending` or `feedback_failed`, nothing in flight | New feedback call | Shows feedback, or the error and Retry |
 | `done` (feedback stored) | 200, the stored feedback | Shows feedback |
 | Expired | 404 `not_found` | No button |
