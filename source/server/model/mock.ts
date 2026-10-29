@@ -14,9 +14,12 @@ export interface MockModelClient extends ModelClient {
 // Typing one of these as the candidate in dev mock mode triggers the failure paths.
 // Feedback has its own trigger: the feedback call sees the whole transcript, so a
 // [mock:fail] that ended the interview would otherwise fail its feedback too.
+// [mock:feedback-fail-once] fails only the first feedback call for a transcript, so a
+// retry succeeds.
 export const MOCK_FAIL = "[mock:fail]";
 export const MOCK_REFUSE = "[mock:refuse]";
 export const MOCK_FEEDBACK_FAIL = "[mock:feedback-fail]";
+export const MOCK_FEEDBACK_FAIL_ONCE = "[mock:feedback-fail-once]";
 
 export function createMockModelClient(
   options: { steps?: MockStep[]; delayMs?: number } = {},
@@ -29,7 +32,7 @@ export function createMockModelClient(
     async complete(request, { onText, signal } = {}) {
       calls.push(request);
       signal?.throwIfAborted();
-      const step = steps.shift() ?? defaultStep(request, calls.length);
+      const step = steps.shift() ?? defaultStep(request, calls);
       if ("error" in step) throw step.error;
 
       const text = step.stopReason === "refusal" ? "" : step.text;
@@ -53,15 +56,24 @@ export function createMockModelClient(
   };
 }
 
-function defaultStep(request: ModelRequest, callNumber: number): MockStep {
+// `calls` already includes this request.
+function defaultStep(request: ModelRequest, calls: ModelRequest[]): MockStep {
   const lastMessage = request.messages.at(-1)?.content ?? "";
   if (request.kind === "feedback") {
     if (lastMessage.includes(MOCK_FEEDBACK_FAIL)) return { error: new Error("Mock model failure") };
+    // Fail if no earlier feedback call sent this exact transcript. Mock replies number
+    // themselves by call, so two sessions' transcripts never match.
+    if (lastMessage.includes(MOCK_FEEDBACK_FAIL_ONCE)) {
+      const tries = calls.filter(
+        (c) => c.kind === "feedback" && c.messages.at(-1)?.content === lastMessage,
+      ).length;
+      if (tries === 1) return { error: new Error("Mock model failure") };
+    }
     return { text: JSON.stringify(mockFeedback()) };
   }
   if (lastMessage.includes(MOCK_FAIL)) return { error: new Error("Mock model failure") };
   if (lastMessage.includes(MOCK_REFUSE)) return { text: "", stopReason: "refusal" };
-  return { text: `Mock ${request.kind} reply ${callNumber}. No API call was made.` };
+  return { text: `Mock ${request.kind} reply ${calls.length}. No API call was made.` };
 }
 
 // Valid feedback with one "not observed" dimension, so the client shows both kinds of row.

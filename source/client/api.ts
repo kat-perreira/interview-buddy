@@ -6,17 +6,26 @@ export type StartResult =
   | { ok: false; message: string };
 
 // `ended` means the interview is over and input should lock. `reply` is null when Bubo
-// failed twice (`message` says so) or End interview dropped the reply.
+// failed twice (`message` says so) or End interview dropped the reply. On a failure,
+// `feedbackNext` means the interview had already ended but the session is still there,
+// so feedback can still be asked for.
 export type TurnResult =
   | { ok: true; reply: string | null; ended: boolean; message: string | null }
-  | { ok: false; message: string; ended: boolean };
+  | { ok: false; message: string; ended: boolean; feedbackNext: boolean };
 
 export type EndResult = { ok: true } | { ok: false; message: string };
 
-export type FeedbackResult = { ok: true; feedback: Feedback } | { ok: false; message: string };
+// `retryable` is true when asking again could succeed: the call failed or was still
+// running, or the request never got an answer.
+export type FeedbackResult =
+  | { ok: true; feedback: Feedback }
+  | { ok: false; message: string; retryable: boolean };
 
 // Request errors that mean the session can't take more turns.
 const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
+
+// Feedback errors that another request could get past.
+const RETRYABLE_FEEDBACK_ERRORS = new Set(["feedback_failed", "feedback_in_progress"]);
 
 // Calls below never throw: failures come back as a message to show, the server's own
 // when it sent one, otherwise the fallback.
@@ -61,12 +70,17 @@ export async function sendTurn(sessionId: string, message: string): Promise<Turn
         };
       }
     } else if (typeof body?.message === "string") {
-      return { ok: false, message: body.message, ended: ENDED_ERRORS.has(body.error) };
+      return {
+        ok: false,
+        message: body.message,
+        ended: ENDED_ERRORS.has(body.error),
+        feedbackNext: body.error === "interview_over",
+      };
     }
   } catch {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
-  return { ok: false, message: ERROR_MESSAGES.send_failed, ended: false };
+  return { ok: false, message: ERROR_MESSAGES.send_failed, ended: false, feedbackNext: false };
 }
 
 // Ends the interview (End interview, after the candidate confirms).
@@ -95,10 +109,10 @@ export async function requestFeedback(sessionId: string): Promise<FeedbackResult
       const feedback = parseFeedback(body?.feedback);
       if (feedback) return { ok: true, feedback };
     } else if (typeof body?.message === "string") {
-      return { ok: false, message: body.message };
+      return { ok: false, message: body.message, retryable: RETRYABLE_FEEDBACK_ERRORS.has(body.error) };
     }
   } catch {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
-  return { ok: false, message: ERROR_MESSAGES.feedback_failed };
+  return { ok: false, message: ERROR_MESSAGES.feedback_failed, retryable: true };
 }

@@ -135,12 +135,16 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
   });
 
   // Write the feedback once the interview has ended. A failed call leaves the session in
-  // feedback_failed, where this route can be called again. Feedback is not stored.
+  // feedback_failed, where this route can be called again. Idempotent once done: a repeat
+  // request gets the stored feedback, with no model call.
   app.post("/sessions/:id/feedback", async (c) => {
     const session = store.get(c.req.param("id"));
     if (!session) return c.json(error("not_found"), 404);
     if (session.status === "active") return c.json(error("feedback_not_ready"), 409);
-    if (session.status === "done") return c.json(error("interview_over"), 409);
+    if (session.feedback) {
+      store.touch(session);
+      return c.json({ feedback: session.feedback, ...state(session) });
+    }
     // Also covers a dropped interviewer reply that hasn't settled yet after End interview.
     if (session.busy) return c.json(error("feedback_in_progress"), 409);
 
@@ -151,6 +155,7 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
       session.status = "feedback_failed";
       return c.json(error("feedback_failed"), 502);
     }
+    session.feedback = feedback;
     session.status = "done";
     return c.json({ feedback, ...state(session) });
   });

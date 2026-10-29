@@ -109,7 +109,12 @@ describe("sendTurn", () => {
   it("keeps the interview open on a request error like busy", async () => {
     stubFetch(async () => Response.json({ error: "busy", message: "Still replying." }, { status: 409 }));
 
-    expect(await sendTurn("abc", "Hi")).toEqual({ ok: false, message: "Still replying.", ended: false });
+    expect(await sendTurn("abc", "Hi")).toEqual({
+      ok: false,
+      message: "Still replying.",
+      ended: false,
+      feedbackNext: false,
+    });
   });
 
   it("marks the interview ended when the session is gone", async () => {
@@ -117,7 +122,25 @@ describe("sendTurn", () => {
       Response.json({ error: "not_found", message: "Session ended." }, { status: 404 }),
     );
 
-    expect(await sendTurn("abc", "Hi")).toEqual({ ok: false, message: "Session ended.", ended: true });
+    expect(await sendTurn("abc", "Hi")).toEqual({
+      ok: false,
+      message: "Session ended.",
+      ended: true,
+      feedbackNext: false,
+    });
+  });
+
+  it("marks the interview ended with feedback next when it already ended", async () => {
+    stubFetch(async () =>
+      Response.json({ error: "interview_over", message: "Already ended." }, { status: 409 }),
+    );
+
+    expect(await sendTurn("abc", "Hi")).toEqual({
+      ok: false,
+      message: "Already ended.",
+      ended: true,
+      feedbackNext: true,
+    });
   });
 
   it("falls back to send_failed when the request never reaches the server", async () => {
@@ -129,6 +152,7 @@ describe("sendTurn", () => {
       ok: false,
       message: ERROR_MESSAGES.send_failed,
       ended: false,
+      feedbackNext: false,
     });
   });
 
@@ -139,6 +163,7 @@ describe("sendTurn", () => {
       ok: false,
       message: ERROR_MESSAGES.send_failed,
       ended: false,
+      feedbackNext: false,
     });
   });
 });
@@ -186,13 +211,39 @@ describe("requestFeedback", () => {
       Response.json({ error: "feedback_failed", message: "Server says try again." }, { status: 502 }),
     );
 
-    expect(await requestFeedback("abc")).toEqual({ ok: false, message: "Server says try again." });
+    expect(await requestFeedback("abc")).toEqual({
+      ok: false,
+      message: "Server says try again.",
+      retryable: true,
+    });
+  });
+
+  it("can be retried while another request is writing the feedback", async () => {
+    stubFetch(async () =>
+      Response.json({ error: "feedback_in_progress", message: "Being written." }, { status: 409 }),
+    );
+
+    expect(await requestFeedback("abc")).toMatchObject({ ok: false, retryable: true });
+  });
+
+  it.each(["interview_over", "not_found", "feedback_not_ready"])("can't be retried after %s", async (code) => {
+    stubFetch(async () => Response.json({ error: code, message: "No more feedback." }, { status: 409 }));
+
+    expect(await requestFeedback("abc")).toEqual({
+      ok: false,
+      message: "No more feedback.",
+      retryable: false,
+    });
   });
 
   it("treats incomplete feedback as a failure", async () => {
     stubFetch(async () => Response.json({ feedback: { summary: "Only this." }, status: "done" }));
 
-    expect(await requestFeedback("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.feedback_failed });
+    expect(await requestFeedback("abc")).toEqual({
+      ok: false,
+      message: ERROR_MESSAGES.feedback_failed,
+      retryable: true,
+    });
   });
 
   it("falls back to feedback_failed when the request never reaches the server", async () => {
@@ -200,6 +251,10 @@ describe("requestFeedback", () => {
       throw new TypeError("Failed to fetch");
     });
 
-    expect(await requestFeedback("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.feedback_failed });
+    expect(await requestFeedback("abc")).toEqual({
+      ok: false,
+      message: ERROR_MESSAGES.feedback_failed,
+      retryable: true,
+    });
   });
 });

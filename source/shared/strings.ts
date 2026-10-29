@@ -12,6 +12,8 @@ export const UI_MESSAGES = {
     "You did it. Practicing out loud takes nerve, and every session makes the next one easier. Here's what went well and what to work on next.",
   // Shown when the interview ends normally (turn cap or End interview).
   interview_complete: "Good job, that's the end of the interview. Your feedback is coming next.",
+  // Under a message the server turned away because the interview had already ended.
+  not_sent: "Not sent. The interview had already ended, so this message isn't part of your feedback.",
   writing_feedback: "Writing your feedback…",
 } as const;
 

@@ -46,6 +46,7 @@ export function createSessionStore(
         status: "active",
         endReason: null,
         transcript: [],
+        feedback: null,
         candidateTurns: 0,
         tokensUsed: 0,
         lastCall: null,

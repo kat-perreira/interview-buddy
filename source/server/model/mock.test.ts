@@ -4,6 +4,7 @@ import { parseFeedback } from "../../shared/feedback.ts";
 import {
   MOCK_FAIL,
   MOCK_FEEDBACK_FAIL,
+  MOCK_FEEDBACK_FAIL_ONCE,
   MOCK_REFUSE,
   createMockModelClient,
   mockFeedback,
@@ -96,6 +97,16 @@ describe("createMockModelClient", () => {
 
     await expect(client.complete(request(MOCK_FAIL, "feedback"))).resolves.toBeDefined();
     await expect(client.complete(request(MOCK_FEEDBACK_FAIL, "feedback"))).rejects.toThrow();
+  });
+
+  it("fails feedback once per transcript on the fail-once trigger", async () => {
+    const client = createMockModelClient();
+    const first = request(`Session A ${MOCK_FEEDBACK_FAIL_ONCE}`, "feedback");
+    const other = request(`Session B ${MOCK_FEEDBACK_FAIL_ONCE}`, "feedback");
+
+    await expect(client.complete(first)).rejects.toThrow();
+    await expect(client.complete(first)).resolves.toBeDefined();
+    await expect(client.complete(other)).rejects.toThrow();
   });
 
   it("rejects when the signal aborts mid-reply", async () => {

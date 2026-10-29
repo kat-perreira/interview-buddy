@@ -1,3 +1,4 @@
+import type { Feedback } from "../../shared/feedback.ts";
 import type { ChatMessage } from "../model/types.ts";
 
 // active → feedback_pending → done. A failed feedback call moves to feedback_failed,
@@ -18,6 +19,9 @@ export interface Session {
   // What the candidate saw, opening reply included. Request-only text (the kickoff
   // message, turn instructions) is added when building each call, never stored here.
   transcript: ChatMessage[];
+  // The finished feedback, kept until the session expires so a repeat request (say, after
+  // a lost response) gets the same feedback back instead of an error.
+  feedback: Feedback | null;
   // Candidate messages sent. The opening reply is not a turn.
   candidateTurns: number;
   // Sum of totalTokens(usage) across every call, feedback included.

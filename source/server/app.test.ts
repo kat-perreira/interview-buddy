@@ -520,14 +520,15 @@ describe("POST /api/sessions/:id/feedback", () => {
     expect(mock.calls).toHaveLength(1);
   });
 
-  it("rejects a second request once the feedback is done", async () => {
-    const { app, id } = await endedSession();
-    await getFeedback(app, id);
+  it("returns the same feedback on a repeat request, without a model call", async () => {
+    const { app, id, mock } = await endedSession();
+    const first = await (await getFeedback(app, id)).json();
 
     const res = await getFeedback(app, id);
 
-    expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ error: "interview_over" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(first);
+    expect(mock.calls).toHaveLength(3);
   });
 
   it("rejects a second request while the feedback is being written", async () => {

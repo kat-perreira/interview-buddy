@@ -72,7 +72,43 @@ If the client asked for feedback before the turn result arrived, the server woul
 ## Feedback
 
 - The client asks for feedback as soon as the interview ends. The server makes one feedback call per request.
-- Success moves the session to `done` and returns the feedback, which is not stored. Any failure moves it to `feedback_failed`, where the same request can be made again.
+- Success stores the feedback on the session (in memory, until it expires), moves it to `done`, and returns the feedback. Any failure moves it to `feedback_failed`, where the same request can be made again.
+- On `feedback_failed`, `feedback_in_progress`, or no answer at all, the client shows **Retry feedback**. `not_found` (the session expired) can't be fixed by asking again, so there is no button.
+- A send that gets 409 `interview_over` shows that message as the end notice, marks the message "Not sent", and asks for feedback.
+
+### Retrying safely: the feedback request is idempotent
+
+A request is **idempotent** when sending it twice has the same effect as sending it once. The feedback route gets there by remembering its answer: the first success is stored, and any later request for the same session gets that stored answer back instead of a new model call or an error.
+
+That makes retrying safe even when the client can't tell what happened. Here the response is lost after the server finished, so the client thinks the call failed:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant M as Model
+    C->>S: POST /feedback
+    S->>M: feedback call
+    M-->>S: feedback JSON
+    Note over S: store feedback, status done
+    S--xC: response lost (network drop)
+    Note over C: shows error and Retry feedback
+    C->>S: POST /feedback (Retry)
+    Note over S: feedback already stored, no model call
+    S-->>C: same feedback, status done
+```
+
+What the server answers depends only on the session, never on how many times it has been asked:
+
+| Session when the request arrives | Answer | Client |
+| --- | --- | --- |
+| `active` | 409 `feedback_not_ready` | No button |
+| Feedback call in flight (`busy`) | 409 `feedback_in_progress` | Retry feedback |
+| `feedback_pending` or `feedback_failed`, nothing in flight | New feedback call | Shows feedback, or the error and Retry |
+| `done` (feedback stored) | 200, the stored feedback | Shows feedback |
+| Expired | 404 `not_found` | No button |
+
+The client never has to cancel or coordinate with another request: whichever request arrives after the feedback is stored gets the same answer.
 
 ## Timers
 

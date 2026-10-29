@@ -26,7 +26,8 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Implement landing page with a single Start button
 - [x] Display interviewer and candidate turns (full replies; streaming comes later)
 - [x] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens; show a notice when the turn cap ends the interview (the input currently just disappears)
-- [ ] Show a clear path to retry feedback if that call fails, and when a send finds the interview already ended (409 `interview_over`); tests for the feedback retry path
+- [x] Show a clear path to retry feedback if that call fails, and when a send finds the interview already ended (409 `interview_over`); tests for the feedback retry path (server and `api.ts`)
+- [ ] Component tests for the Session screen (add `@testing-library/react` and `jsdom`): Retry feedback appears on a retryable failure and recovers; a message turned away with `interview_over` shows "Not sent"
 - [ ] Confirm before End interview; lock input and start feedback after the final reply
 - [ ] After feedback: thank-you and "Practice again"; browser leave-page warning from Start until then
 

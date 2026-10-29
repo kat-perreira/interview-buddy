@@ -42,7 +42,7 @@ From `source/`, with Node 22+:
 
 - `npm install`, then copy `.env.example` to `.env` and add `ANTHROPIC_API_KEY`.
 - `npm run dev` starts the Hono server (port 8787) and Vite (port 5173). Open http://localhost:5173; Vite proxies `/api` to the server.
-- Set `MODEL_CLIENT=mock` in `.env` to click through the app without API calls. In mock mode, a candidate message containing `[mock:fail]` or `[mock:refuse]` triggers the interviewer failure paths, and `[mock:feedback-fail]` makes the feedback call fail.
+- Set `MODEL_CLIENT=mock` in `.env` to click through the app without API calls. In mock mode, a candidate message containing `[mock:fail]` or `[mock:refuse]` triggers the interviewer failure paths, `[mock:feedback-fail]` makes the feedback call fail, and `[mock:feedback-fail-once]` fails it only the first time so Retry feedback recovers.
 - Failed interviewer calls, and replies cut off at `max_tokens`, log a `[interviewer]` warning in the server console (no message text). Failed feedback calls log a `[feedback]` warning. In dev, editing a prompt file restarts the server, which ends any open session.
 - `npm test` runs Vitest once; `npm run test:watch` reruns on change. `npm run typecheck` runs `tsc`.
 - `npm run build && npm start` serves the built client and API from one process on port 8787.

@@ -55,7 +55,8 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   color: var(--muted);
   background: transparent;
   border-color: var(--muted);

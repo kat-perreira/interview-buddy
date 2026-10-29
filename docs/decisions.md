@@ -77,7 +77,7 @@ Short log of why we chose X. Newest last.
 
 ## 2026-10-28 — session store: 30-minute idle expiry, status-based shape
 
-**Choice:** Sessions expire 30 minutes after last activity (create, candidate turn, End interview, feedback request). Expiry is checked on every lookup, and a sweep every 60 seconds frees memory. No absolute max age. A session holds: ID, status (`active` → `feedback_pending` → `done`, with `feedback_failed` allowing feedback retry only), end reason, transcript, candidate turn count, tokens used, the previous call's input and output tokens (for the reserve estimate), a busy flag, and last-activity time. The turn-10 warning is computed, not stored. Feedback text is not stored.
+**Choice:** Sessions expire 30 minutes after last activity (create, candidate turn, End interview, feedback request). Expiry is checked on every lookup, and a sweep every 60 seconds frees memory. No absolute max age. A session holds: ID, status (`active` → `feedback_pending` → `done`, with `feedback_failed` allowing feedback retry only), end reason, transcript, candidate turn count, tokens used, the previous call's input and output tokens (for the reserve estimate), a busy flag, and last-activity time. The turn-10 warning is computed, not stored. Feedback text is not stored. (Reversed: feedback is kept until expiry; see "feedback kept in memory" below.)
 
 **Why:** The TTL only reclaims memory; a refresh already ends the session for the user, and a worst-case session is ~0.5 MB. 30 minutes covers reading feedback before a retry. It is not a thinking-time allowance; pause check-ins handle pacing. Checking expiry on lookup makes behavior independent of sweep timing and testable with an injected clock. The busy flag stops a double submit from interleaving two calls.
 
@@ -146,7 +146,7 @@ Short log of why we chose X. Newest last.
 - The feedback call returns JSON against a schema (`shared/feedback.ts`) using structured outputs. The server checks it has every rubric dimension (a 1-4 rating or null for "not observed", plus one line of evidence), at least two strengths and two areas to improve, and three practice steps. Lists that run long are cut to three. Anything missing fails the call.
 - It has its own system prompt: `prompts/feedback.md`, the scenario, and the rubric. No persona. The transcript goes in as one labeled block of data, followed by a plain fact about how the interview ended.
 - Feedback is written in a plain, warm coaching voice: honest, with a spoonful of sugar, and no owl touches. The page adds a fixed note of encouragement above it.
-- One attempt per request. A failure (error, refusal, cut-off reply, or missing fields) leaves the session in `feedback_failed`, and the same route can be called again. Feedback is not stored.
+- One attempt per request. A failure (error, refusal, cut-off reply, or missing fields) leaves the session in `feedback_failed`, and the same route can be called again. Feedback is not stored. (Reversed: see "feedback kept in memory" below.)
 - End interview cancels an interviewer call in flight (abort signal through `ModelClient`). The cancelled call isn't logged or retried, and its usage isn't counted because it never arrives.
 - The dimension list and rating labels are copied into code; a test checks they match `prompts/rubric.md`.
 - **Exception:** "Tone and feedback principles live in docs/spec.md. Link to them; do not restate them" (`.claude/rules/style.md`). `prompts/feedback.md` restates the feedback principles the model must follow, because a prompt can't follow a link.
@@ -158,6 +158,22 @@ Short log of why we chose X. Newest last.
 **Choice:** The same static ASCII owl from the landing page sits above the feedback. It's still the only owl visual, decorative and skipped by screen readers. During the interview Bubo stays language-only.
 
 **Why:** Feedback is the vulnerable moment of the session, and a familiar friendly face softens it at no cost. It's the same string, so there's no new art or asset. The spec's Non-Goals note both exceptions.
+
+## 2026-10-29 — feedback retry: a button, offered only when another try can work
+
+**Choice:**
+- When the feedback call fails, the error shows with a **Retry feedback** button that sends the same request again. No automatic retry.
+- The button is offered only after `feedback_failed`, `feedback_in_progress`, or a request that got no answer. Other errors can't be fixed by asking again.
+- A send that gets 409 `interview_over` shows that message as the end notice and asks for feedback, the same as any other end. The message stays on screen marked "Not sent", since the server never recorded it and the feedback won't include it.
+- Mock mode adds `[mock:feedback-fail-once]`, which fails only the first feedback call for a transcript, so the recovery can be clicked through.
+
+**Why:** The spec says retry the feedback call only, without restarting the interview. `[mock:feedback-fail]` stays in the transcript, so with it alone every retry fails. Removing a turned-away message would lose the candidate's words; leaving it unmarked would suggest it was graded.
+
+## 2026-10-29 — feedback kept in memory: the feedback route is idempotent
+
+**Choice:** When the feedback call succeeds, the session keeps the feedback in memory until it expires. A repeat request returns the stored feedback (200) with no model call, instead of 409 `interview_over`. Nothing is written to disk. This reverses "Feedback is not stored" from the session store and feedback call entries.
+
+**Why:** If the response is lost after the server marks the session `done` (network drop), the retry would otherwise find the feedback gone, after paying for it. Returning the same answer to the same request is the standard fix for lost responses and duplicate requests (an idempotent request). It also covers a repeat request racing one in flight: once the first finishes, a retry gets its result. The spec's "no saved history" and "no persisted transcripts" still hold: the feedback lives only as long as the session. Kat sees stored feedback as where the project is heading.
 
 ## Open (not decided)
 
