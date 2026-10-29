@@ -178,7 +178,7 @@ Short log of why we chose X. Newest last.
 ## 2026-10-29 — feedback after repeated failures: offer a new interview, re-ask once when in progress
 
 **Choice:**
-- After 3 failed Retry feedback attempts (4 failed requests, counting the automatic first one), a notice suggests a new interview, with a **Start a new interview** button next to **Retry feedback**. The button returns to the landing page. Retry stays.
+- After 3 failed Retry feedback attempts (only Retry attempts count, not the automatic first request), a notice suggests a new interview, with a **Start a new interview** button next to **Retry feedback**. The button returns to the landing page. Retry stays.
 - The notice says a new interview ends this one without feedback. It doesn't promise the feedback comes back.
 - `feedback_in_progress` isn't a failure and doesn't count toward the 3.
 - On `feedback_in_progress`, the client keeps "Writing your feedback…" up, waits 3 seconds, and asks once more on its own. If it's still in progress, it shows the message and Retry feedback as before. This partly reverses "No automatic retry" from the feedback retry entry: that rule still holds for real failures.

@@ -25,6 +25,12 @@ const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
 
 // Feedback errors that another request could get past.
 const RETRYABLE_FEEDBACK_ERRORS = new Set(["feedback_failed", "feedback_in_progress"]);
+// Spec, Failure Handling: after this many failed Retry feedback attempts, also offer a new
+// interview. Retry feedback stays.
+export const RETRIES_BEFORE_NEW_INTERVIEW = 3;
+
+// After feedback_in_progress, ask once more on our own after this long.
+export const REASK_DELAY_MS = 3000;
 
 // True when asking for feedback again could succeed: the call failed or was still running,
 // or the request got no usable answer.

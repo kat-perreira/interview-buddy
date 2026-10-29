@@ -2,7 +2,13 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { Feedback } from "../shared/feedback.ts";
 import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
 import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
-import { canRetryFeedback, requestFeedback, sendTurn } from "./api.ts";
+import {
+  canRetryFeedback,
+  REASK_DELAY_MS,
+  requestFeedback,
+  RETRIES_BEFORE_NEW_INTERVIEW,
+  sendTurn,
+} from "./api.ts";
 import { FeedbackView } from "./Feedback.tsx";
 
 // `notSent`: the server turned the message away because the interview had already ended.
@@ -13,13 +19,6 @@ type Props = {
   opening: string;
   onNewInterview: () => void;
 };
-
-// Spec, Failure Handling: after this many failed Retry feedback attempts, also offer a new
-// interview. Retry feedback stays.
-const RETRIES_BEFORE_NEW_INTERVIEW = 3;
-
-// After feedback_in_progress, ask once more on our own after this long.
-const REASK_DELAY_MS = 3000;
 
 export function Session({ sessionId, opening, onNewInterview }: Props) {
   const [turns, setTurns] = useState<Turn[]>([{ speaker: "bubo", text: opening }]);
@@ -34,9 +33,9 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   // The last feedback request failed in a way another try could fix.
   const [offerRetry, setOfferRetry] = useState(false);
-  // Feedback requests that failed, the first automatic one included. Still being written
-  // (feedback_in_progress) isn't a failure, so it doesn't count.
-  const [feedbackFailures, setFeedbackFailures] = useState(0);
+  // Retry feedback attempts that failed. The automatic first request doesn't count, and
+  // still being written (feedback_in_progress) isn't a failure.
+  const [retryFailures, setRetryFailures] = useState(0);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -110,8 +109,9 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   }
 
   // Called from the handler that ends the interview, not an effect, so StrictMode's
-  // double-run in dev can't send two feedback requests. Retry feedback calls it again.
-  async function loadFeedback() {
+  // double-run in dev can't send two feedback requests. Retry feedback calls it again
+  // with `isRetry`, so only its failures count toward offering a new interview.
+  async function loadFeedback(isRetry = false) {
     // A ref, so a double click on Retry feedback can't send two requests.
     if (feedbackRequestedRef.current) return;
     feedbackRequestedRef.current = true;
@@ -130,7 +130,9 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     setNotice(null);
     const retryable = !result.ok && canRetryFeedback(result.error);
     setOfferRetry(retryable);
-    if (!result.ok && result.error !== "feedback_in_progress") setFeedbackFailures((n) => n + 1);
+    if (isRetry && !result.ok && result.error !== "feedback_in_progress") {
+      setRetryFailures((n) => n + 1);
+    }
     if (result.ok) setFeedback(result.feedback);
     else setError(result.message);
     // Retry feedback unmounts on a final failure; move focus to the heading, not <body>.
@@ -222,7 +224,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         </p>
       )}
 
-      {offerRetry && feedbackFailures > RETRIES_BEFORE_NEW_INTERVIEW && (
+      {offerRetry && retryFailures >= RETRIES_BEFORE_NEW_INTERVIEW && (
         <p className="notice" role="status">
           {UI_MESSAGES.feedback_try_new_interview}
         </p>
@@ -231,11 +233,15 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         <div className="actions">
           {/* Stays mounted and focusable while a retry runs (aria-disabled, not disabled, which
               drops focus to <body>); the ref guard in loadFeedback ignores extra clicks. */}
-          <button type="button" aria-disabled={writingFeedback} onClick={() => void loadFeedback()}>
+          <button
+            type="button"
+            aria-disabled={writingFeedback}
+            onClick={() => void loadFeedback(true)}
+          >
             Retry feedback
           </button>
           {/* Inactive while a retry runs, so leaving can't strand a feedback call in flight. */}
-          {feedbackFailures > RETRIES_BEFORE_NEW_INTERVIEW && (
+          {retryFailures >= RETRIES_BEFORE_NEW_INTERVIEW && (
             <button
               type="button"
               aria-disabled={writingFeedback}
