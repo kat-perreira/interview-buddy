@@ -4,8 +4,21 @@ export type StartResult =
   | { ok: true; sessionId: string; reply: string }
   | { ok: false; message: string };
 
-// Starts a session and returns Bubo's opening. Failures come back as a message to show,
-// never a throw: the server's own message when it sent one, otherwise start_failed.
+// `ended` means the interview is over and input should lock. `reply` is null when Bubo
+// failed twice (`message` says so) or End interview dropped the reply.
+export type TurnResult =
+  | { ok: true; reply: string | null; ended: boolean; message: string | null }
+  | { ok: false; message: string; ended: boolean };
+
+export type EndResult = { ok: true } | { ok: false; message: string };
+
+// Request errors that mean the session can't take more turns.
+const ENDED_ERRORS = new Set(["not_found", "interview_over"]);
+
+// Calls below never throw: failures come back as a message to show, the server's own
+// when it sent one, otherwise the fallback.
+
+// Starts a session and returns Bubo's opening.
 export async function startSession(): Promise<StartResult> {
   try {
     const res = await fetch("/api/sessions", { method: "POST" });
@@ -21,4 +34,49 @@ export async function startSession(): Promise<StartResult> {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
   return { ok: false, message: ERROR_MESSAGES.start_failed };
+}
+
+// Sends one candidate message and returns Bubo's reply.
+export async function sendTurn(sessionId: string, message: string): Promise<TurnResult> {
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/turns`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const body = await res.json();
+    if (res.ok) {
+      if (
+        (typeof body?.reply === "string" || body?.reply === null) &&
+        typeof body.status === "string"
+      ) {
+        return {
+          ok: true,
+          reply: body.reply,
+          ended: body.status !== "active",
+          message: typeof body.message === "string" ? body.message : null,
+        };
+      }
+    } else if (typeof body?.message === "string") {
+      return { ok: false, message: body.message, ended: ENDED_ERRORS.has(body.error) };
+    }
+  } catch {
+    // Network error or a body that isn't JSON: fall through to the generic message.
+  }
+  return { ok: false, message: ERROR_MESSAGES.send_failed, ended: false };
+}
+
+// Ends the interview (End interview, after the candidate confirms).
+export async function endSession(sessionId: string): Promise<EndResult> {
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/end`, {
+      method: "POST",
+    });
+    if (res.ok) return { ok: true };
+    const body = await res.json();
+    if (typeof body?.message === "string") return { ok: false, message: body.message };
+  } catch {
+    // Network error or a body that isn't JSON: fall through to the generic message.
+  }
+  return { ok: false, message: ERROR_MESSAGES.end_failed };
 }

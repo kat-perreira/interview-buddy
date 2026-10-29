@@ -80,3 +80,69 @@ button:focus-visible {
   white-space: pre-wrap;
   margin-top: 0;
 }
+
+/* Focus target for the screen reader cue on start; not interactive, so no ring. */
+h1[tabindex="-1"]:focus {
+  outline: none;
+}
+
+.speaker.you {
+  color: var(--muted);
+}
+
+.thinking,
+.hint {
+  color: var(--muted);
+}
+
+.notice {
+  border-left: 2px solid var(--accent);
+  padding-left: 0.75rem;
+}
+
+.composer {
+  margin-top: 2rem;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 0.5rem;
+  resize: vertical;
+}
+
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.composer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.hint {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.hint.error {
+  color: var(--error);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

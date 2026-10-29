@@ -28,7 +28,7 @@ export function Landing({ onStarted }: Props) {
       <pre className="owl" aria-hidden="true">
         {OWL}
       </pre>
-      <h1>InterviewBuddy</h1>
+      <h1>Interview Buddy</h1>
       <p>Practice a system design interview with Bubo.</p>
       <p>Today's problem: design a notification service.</p>
       <ul>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Landing } from "./Landing.tsx";
+import { Session } from "./Session.tsx";
 
 type Screen =
   | { screen: "landing" }
@@ -14,12 +15,5 @@ export function App() {
     );
   }
 
-  // Stub session screen: shows Bubo's opening only. The "Display interviewer and
-  // candidate turns" task replaces it with the transcript and input.
-  return (
-    <main>
-      <p className="speaker">Bubo</p>
-      <p className="reply">{view.opening}</p>
-    </main>
-  );
+  return <Session key={view.sessionId} sessionId={view.sessionId} opening={view.opening} />;
 }

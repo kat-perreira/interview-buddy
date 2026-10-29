@@ -2,7 +2,7 @@
 
 Text-based practice for system design interviews, with an AI interviewer who asks real follow-ups and gives honest, kind feedback.
 
-Reading about system design only gets you so far. The interview itself is a conversation: you scope the problem, sketch a design, defend tradeoffs, and adjust when someone pushes back. InterviewBuddy gives you a place to rehearse that conversation without the stakes.
+Reading about system design only gets you so far. The interview itself is a conversation: you scope the problem, sketch a design, defend tradeoffs, and adjust when someone pushes back. Interview Buddy gives you a place to rehearse that conversation without the stakes.
 
 > **Status:** in progress. The spec, prompts, model client, and session store are done. The session loop, feedback, and UI are next. See [docs/plan.md](docs/plan.md).
 

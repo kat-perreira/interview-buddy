@@ -24,7 +24,7 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 - [x] Session routes: start a session, send a candidate turn, End interview; enforce the turn cap, busy flag, and message length; retry a failed interviewer call once, then end with `interviewer_failed` (full replies, no streaming yet)
 - [x] Tests for turn cap, turn-10 and final-turn instructions, message length, and failure paths (before UI work)
 - [x] Implement landing page with a single Start button
-- [ ] Display interviewer and candidate turns (full replies; streaming comes later)
+- [x] Display interviewer and candidate turns (full replies; streaming comes later)
 - [ ] Generate feedback on End interview or turn cap; End mid-reply cancels the in-flight interviewer call (pass an abort signal through `ModelClient`) so the dropped reply stops costing tokens
 - [ ] Show a clear path to retry feedback if that call fails; tests for the feedback retry path
 - [ ] Confirm before End interview; lock input and start feedback after the final reply

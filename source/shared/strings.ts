@@ -11,6 +11,10 @@ export const ERROR_MESSAGES = {
   empty_message: "Type a message to send.",
   too_long: `Messages can be up to ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters. Please try a shorter response.`,
 
+  // Client-only: the request never reached the server, or the reply was unreadable.
+  send_failed: "Your message didn't reach Bubo. Please try sending it again.",
+  end_failed: "The interview couldn't end just now. Please try again.",
+
   // Sent with a turn result when Bubo's reply failed twice and the interview ended.
   interviewer_failed:
     "Something went wrong on our side, so the interview ends here. Your feedback is next, based on your responses.",
