@@ -4,11 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockFeedback } from "../server/model/mock.ts";
 import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
 import {
+  endSession,
   REASK_DELAY_MS,
   requestFeedback,
   RETRIES_BEFORE_NEW_INTERVIEW,
   sendTurn,
+  type EndResult,
   type FeedbackResult,
+  type TurnResult,
 } from "./api.ts";
 import { Session } from "./Session.tsx";
 
@@ -17,10 +20,12 @@ import { Session } from "./Session.tsx";
 vi.mock("./api.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api.ts")>()),
   sendTurn: vi.fn(),
+  endSession: vi.fn(),
   requestFeedback: vi.fn(),
 }));
 
 const sendTurnMock = vi.mocked(sendTurn);
+const endSessionMock = vi.mocked(endSession);
 const requestFeedbackMock = vi.mocked(requestFeedback);
 
 const FEEDBACK_OK: FeedbackResult = { ok: true, feedback: mockFeedback() };
@@ -54,6 +59,15 @@ async function endInterview() {
   await send("Last answer");
 }
 
+// Clicks End interview and answers the confirm. Lets the end request settle.
+async function clickEnd(confirmed = true) {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(confirmed);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+  });
+  return confirm;
+}
+
 async function clickRetry(times = 1) {
   for (let i = 0; i < times; i++) {
     await act(async () => {
@@ -69,6 +83,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.resetAllMocks();
   vi.useRealTimers();
 });
@@ -219,5 +234,147 @@ describe("Session", () => {
     expect(requestFeedbackMock).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.feedback_in_progress);
     expect(screen.getByRole("button", { name: "Retry feedback" })).toBeTruthy();
+  });
+
+  it("locks input and starts feedback after Bubo's final reply", async () => {
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+
+    await endInterview();
+    expect(screen.getByText("Thanks!")).toBeTruthy();
+    expect(screen.queryByLabelText("Your response")).toBeNull();
+    expect(screen.queryByRole("button", { name: "End interview" })).toBeNull();
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("asks before End interview and keeps going if the candidate cancels", async () => {
+    renderSession();
+
+    const confirm = await clickEnd(false);
+    expect(confirm).toHaveBeenCalledWith(UI_MESSAGES.end_confirm);
+    expect(endSessionMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Your response")).toBeTruthy();
+  });
+
+  it("ends after the candidate confirms, locks input, and asks for feedback", async () => {
+    let finishFeedback: (result: FeedbackResult) => void = () => {};
+    endSessionMock.mockResolvedValueOnce({ ok: true });
+    requestFeedbackMock.mockReturnValueOnce(new Promise((resolve) => (finishFeedback = resolve)));
+    renderSession();
+
+    await clickEnd();
+    expect(endSessionMock).toHaveBeenCalledWith("abc");
+    expect(screen.queryByLabelText("Your response")).toBeNull();
+    expect(screen.getByText(UI_MESSAGES.interview_complete)).toBeTruthy();
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => finishFeedback(FEEDBACK_OK));
+    expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("ending mid-reply asks for feedback once, after the dropped reply's result", async () => {
+    let finishTurn: (result: TurnResult) => void = () => {};
+    sendTurnMock.mockReturnValueOnce(new Promise((resolve) => (finishTurn = resolve)));
+    endSessionMock.mockResolvedValueOnce({ ok: true });
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+
+    await send("Half an answer");
+    await clickEnd();
+    expect(endSessionMock).toHaveBeenCalledTimes(1);
+    expect(requestFeedbackMock).not.toHaveBeenCalled();
+
+    await act(async () => finishTurn({ ok: true, reply: null, ended: true, message: null }));
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("keeps the interview going and shows the message when ending fails", async () => {
+    endSessionMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.end_failed,
+      error: null,
+    });
+    renderSession();
+
+    await clickEnd();
+    expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.end_failed);
+    expect(screen.getByLabelText("Your response")).toBeTruthy();
+    expect(requestFeedbackMock).not.toHaveBeenCalled();
+  });
+
+  it("ends and asks for feedback when End finds the interview already over", async () => {
+    endSessionMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.interview_over,
+      error: "interview_over",
+    });
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+
+    await clickEnd();
+    expect(screen.queryByLabelText("Your response")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("locks input with no feedback request when End finds the session expired", async () => {
+    endSessionMock.mockResolvedValueOnce({
+      ok: false,
+      message: ERROR_MESSAGES.not_found,
+      error: "not_found",
+    });
+    renderSession();
+
+    await clickEnd();
+    expect(screen.queryByLabelText("Your response")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe(ERROR_MESSAGES.not_found);
+    expect(requestFeedbackMock).not.toHaveBeenCalled();
+  });
+
+  it("stays ended and asks for feedback when the dropped turn's request fails after End", async () => {
+    let finishTurn: (result: TurnResult) => void = () => {};
+    sendTurnMock.mockReturnValueOnce(new Promise((resolve) => (finishTurn = resolve)));
+    endSessionMock.mockResolvedValueOnce({ ok: true });
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+
+    await send("Half an answer");
+    await clickEnd();
+    await act(async () =>
+      finishTurn({
+        ok: false,
+        message: ERROR_MESSAGES.send_failed,
+        ended: false,
+        feedbackNext: false,
+      }),
+    );
+    expect(screen.queryByLabelText("Your response")).toBeNull();
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
+  });
+
+  it("keeps Bubo's final reply and asks for feedback once when it lands before End's response", async () => {
+    let finishTurn: (result: TurnResult) => void = () => {};
+    let finishEnd: (result: EndResult) => void = () => {};
+    sendTurnMock.mockReturnValueOnce(new Promise((resolve) => (finishTurn = resolve)));
+    endSessionMock.mockReturnValueOnce(new Promise((resolve) => (finishEnd = resolve)));
+    requestFeedbackMock.mockResolvedValueOnce(FEEDBACK_OK);
+    renderSession();
+
+    await send("Last answer");
+    await clickEnd();
+    await act(async () => finishTurn({ ok: true, reply: "Thanks!", ended: true, message: null }));
+    await act(async () =>
+      finishEnd({
+        ok: false,
+        message: ERROR_MESSAGES.interview_over,
+        error: "interview_over",
+      }),
+    );
+    expect(screen.getByText("Thanks!")).toBeTruthy();
+    expect(requestFeedbackMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "Your feedback" })).toBeTruthy();
   });
 });

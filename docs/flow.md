@@ -38,7 +38,7 @@ Each path sets the session's `endReason`, then feedback runs.
 
 ## Ending mid-reply
 
-End interview while Bubo is replying. The server side is built; the client's End handler comes with the confirm-before-End task. Feedback is requested once, by whichever response arrives with nothing still in flight.
+End interview while Bubo is replying. Feedback is requested once, by whichever response arrives with nothing still in flight. If End gets 409 `interview_over` (the interview ended another way first), the client treats it as ended the same way. Whichever of the two responses arrives second does nothing more, and a final reply that finished first stays in the transcript.
 
 ```mermaid
 sequenceDiagram

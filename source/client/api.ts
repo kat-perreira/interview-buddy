@@ -13,7 +13,8 @@ export type TurnResult =
   | { ok: true; reply: string | null; ended: boolean; message: string | null }
   | { ok: false; message: string; ended: boolean; feedbackNext: boolean };
 
-export type EndResult = { ok: true } | { ok: false; message: string };
+// `error` is the server's error code, or null when the request got no usable answer.
+export type EndResult = { ok: true } | { ok: false; message: string; error: string | null };
 
 // `error` is the server's error code, or null when the request got no usable answer.
 export type FeedbackResult =
@@ -102,11 +103,17 @@ export async function endSession(sessionId: string): Promise<EndResult> {
     });
     if (res.ok) return { ok: true };
     const body = await res.json();
-    if (typeof body?.message === "string") return { ok: false, message: body.message };
+    if (typeof body?.message === "string") {
+      return {
+        ok: false,
+        message: body.message,
+        error: typeof body.error === "string" ? body.error : null,
+      };
+    }
   } catch {
     // Network error or a body that isn't JSON: fall through to the generic message.
   }
-  return { ok: false, message: ERROR_MESSAGES.end_failed };
+  return { ok: false, message: ERROR_MESSAGES.end_failed, error: null };
 }
 
 // Asks for the feedback once the interview has ended. Safe to call again after a failure.

@@ -7,6 +7,9 @@ import { MAX_MESSAGE_CHARS } from "./limits.ts";
 // Notices and status lines, alphabetized.
 export const UI_MESSAGES = {
   bubo_thinking: "Bubo is thinking…",
+  // The warning before End interview ends the session (docs/spec.md, Principles).
+  end_confirm:
+    "End the interview now? Your feedback comes next, based on the conversation so far. Anything you haven't sent won't be included.",
   // Shown above the feedback. Hearing feedback is the hard part, so it opens warmly.
   feedback_intro:
     "You did it. Practicing out loud takes nerve, and every session makes the next one easier. Here's what went well and what to work on next.",

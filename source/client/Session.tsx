@@ -4,6 +4,7 @@ import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
 import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
 import {
   canRetryFeedback,
+  endSession,
   REASK_DELAY_MS,
   requestFeedback,
   RETRIES_BEFORE_NEW_INTERVIEW,
@@ -42,6 +43,10 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const feedbackHeadingRef = useRef<HTMLHeadingElement>(null);
   const sendingRef = useRef(false);
+  const endingRef = useRef(false);
+  // Mirrors `ended` for handlers mid-await, which can't see state change: End and a turn
+  // result can each arrive while the other is out.
+  const endedRef = useRef(false);
   const feedbackRequestedRef = useRef(false);
 
   // Screen reader cue that the interview has started.
@@ -62,10 +67,15 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
   const length = messageLength(draft.trim());
   const tooLong = length > MAX_MESSAGE_CHARS;
 
+  function lockInput() {
+    endedRef.current = true;
+    setEnded(true);
+  }
+
   async function send() {
     const message = draft.trim();
     // A ref, not `waiting`, so two submits before a re-render can't both get through.
-    if (sendingRef.current || tooLong || ended) return;
+    if (sendingRef.current || endingRef.current || tooLong || endedRef.current) return;
     if (!message) {
       setError(ERROR_MESSAGES.empty_message);
       return;
@@ -80,12 +90,27 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     setWaiting(false);
     sendingRef.current = false;
 
+    // End interview landed while this turn was out, so feedback is this handler's to ask for
+    // (docs/flow.md, Ending mid-reply). The reply is usually dropped, but if Bubo's final
+    // reply finished before End arrived, it's kept.
+    if (endedRef.current) {
+      if (result.ok) {
+        const { reply } = result;
+        if (reply !== null) setTurns((t) => [...t, { speaker: "bubo", text: reply }]);
+        if (result.message) setNotice(result.message);
+      }
+      void loadFeedback();
+      return;
+    }
+
     if (result.ok) {
       const { reply } = result;
       if (reply !== null) setTurns((t) => [...t, { speaker: "bubo", text: reply }]);
       setNotice(result.message ?? (result.ended ? UI_MESSAGES.interview_complete : null));
-      setEnded(result.ended);
-      if (result.ended) void loadFeedback();
+      if (result.ended) {
+        lockInput();
+        void loadFeedback();
+      }
     } else {
       // The message didn't land: take it back out of the transcript and restore the draft.
       // If the interview is over the composer is gone, so the message stays visible instead.
@@ -93,7 +118,7 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
         setTurns((t) => t.slice(0, -1));
         setDraft(message);
       }
-      setEnded(result.ended);
+      if (result.ended) lockInput();
       // Ended some other way (End interview, say) with the session still there: feedback is next.
       if (result.feedbackNext) {
         setTurns((t) => [...t.slice(0, -1), { speaker: "you", text: message, notSent: true }]);
@@ -108,7 +133,40 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
     else inputRef.current?.focus();
   }
 
-  // Called from the handler that ends the interview, not an effect, so StrictMode's
+  // End interview, after the candidate confirms. Allowed while Bubo is replying: the server
+  // drops that reply, and send() asks for feedback once its result arrives (docs/flow.md,
+  // Ending mid-reply). Asking here too would get feedback_in_progress.
+  async function end() {
+    if (endingRef.current || endedRef.current) return;
+    if (!window.confirm(UI_MESSAGES.end_confirm)) return;
+
+    endingRef.current = true;
+    const result = await endSession(sessionId);
+    endingRef.current = false;
+
+    // A turn result ended the interview while this request was out, and handled it.
+    if (endedRef.current) return;
+    if (!result.ok && result.error === "not_found") {
+      // The session expired, so there's no feedback to ask for.
+      lockInput();
+      setError(result.message);
+      headingRef.current?.focus();
+      return;
+    }
+    if (!result.ok && result.error !== "interview_over") {
+      setError(result.message);
+      return;
+    }
+    // Ended by this request, or (interview_over) another way first.
+    setError(null);
+    setNotice(UI_MESSAGES.interview_complete);
+    lockInput();
+    if (!sendingRef.current) void loadFeedback();
+    // The composer unmounts; move focus to the heading, not <body>.
+    headingRef.current?.focus();
+  }
+
+  // Called from the handlers that end the interview, not an effect, so StrictMode's
   // double-run in dev can't send two feedback requests. Retry feedback calls it again
   // with `isRetry`, so only its failures count toward offering a new interview.
   async function loadFeedback(isRetry = false) {
@@ -208,6 +266,10 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
             </p>
             <button type="submit" disabled={waiting}>
               Send
+            </button>
+            {/* Not disabled while Bubo replies: the candidate can always end (docs/spec.md). */}
+            <button type="button" onClick={() => void end()}>
+              End interview
             </button>
           </div>
           {tooLong && (

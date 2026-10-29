@@ -183,7 +183,11 @@ describe("endSession", () => {
       Response.json({ error: "interview_over", message: "Already ended." }, { status: 409 }),
     );
 
-    expect(await endSession("abc")).toEqual({ ok: false, message: "Already ended." });
+    expect(await endSession("abc")).toEqual({
+      ok: false,
+      message: "Already ended.",
+      error: "interview_over",
+    });
   });
 
   it("falls back to end_failed when the request never reaches the server", async () => {
@@ -191,7 +195,11 @@ describe("endSession", () => {
       throw new TypeError("Failed to fetch");
     });
 
-    expect(await endSession("abc")).toEqual({ ok: false, message: ERROR_MESSAGES.end_failed });
+    expect(await endSession("abc")).toEqual({
+      ok: false,
+      message: ERROR_MESSAGES.end_failed,
+      error: null,
+    });
   });
 });
 
