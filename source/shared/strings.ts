@@ -17,8 +17,13 @@ export const UI_MESSAGES = {
   // A refresh or new session drops this one, so it doesn't promise the feedback comes back.
   feedback_try_new_interview:
     "Your feedback still couldn't be written. You can keep trying, or start a new interview. A new interview ends this one without feedback.",
-  // Shown when the interview ends normally (turn cap or End Interview).
+  // Shown when the interview ends normally (turn cap, token cap after Bubo's close, or
+  // End Interview).
   interview_complete: "Good job, that's the end of the interview. Your feedback is coming next.",
+  // Sent with a turn result when the token cap ends the interview before Bubo can reply.
+  // The message stays in the transcript, so the feedback includes it.
+  length_limit:
+    "This interview has reached its length limit, so it ends here. Your feedback is next, and it includes your last message.",
   // Under a message the server turned away because the interview had already ended.
   not_sent: "Not sent. The interview had already ended, so this message isn't part of your feedback.",
   // After the feedback, above Practice Again (docs/spec.md, After feedback).

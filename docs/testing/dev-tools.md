@@ -20,6 +20,7 @@ Type these anywhere in a candidate message (mock mode only).
 | `[mock:refuse]` | Bubo refuses twice: same path as `[mock:fail]`. |
 | `[mock:feedback-fail]` | The interview continues normally; every feedback call for this session fails. |
 | `[mock:feedback-fail-once]` | The first feedback call fails; Retry Feedback succeeds. |
+| `[mock:heavy]` | Its own call and every later one, feedback included, reports 12,000 more input tokens, as if a long document stayed in the conversation. Brings the token cap within about 7 turns. |
 
 ## Dev helpers
 
@@ -35,6 +36,7 @@ Type these anywhere in a candidate message (mock mode only).
 | --- | --- |
 | Turn-10 warning | Fill Next Answer + Cmd/Ctrl+Enter, 10 times. Mock reply shows "turn 10 of 12, Wrap-up". |
 | Turn cap and auto feedback | Same, 12 times. Or `npm run dev:session` for the API side. |
+| Token cap (early wrap-up and final turn) | Send `[mock:heavy]` on turn 1, then any messages. Mock replies show "Wrap-up" around turn 6 and "Final turn" on the next, then feedback starts. |
 | Interviewer failure | Send `[mock:fail]` on any turn. |
 | Feedback retry that recovers | Send `[mock:feedback-fail-once]`, then End Interview, then Retry Feedback. |
 | Feedback that keeps failing (Start a New Interview offer) | Send `[mock:feedback-fail]`, End Interview, then Retry Feedback 3 times. |

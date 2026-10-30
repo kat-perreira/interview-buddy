@@ -22,7 +22,7 @@ Open tasks have IDs (T1, T2, ...). Put the ID first in the commit message, chat 
 - [x] Model client interface plus a mock for tests (includes `MODEL_CLIENT=mock` dev mode)
 - [x] Server-held session store with TTL sweep
 - [x] Pacing: send "Turn N of 12" with each interviewer call; add a loose pacing guide to the scenario (scoping by ~turn 3, core design by ~turn 8, then deep dives and wrap-up; encourage thinking out loud over polished answers)
-- [x] Turn instructions: at turn 10, tell Bubo to mention the session is nearly up and steer to a big-picture wrap-up; on turn 12, tell her to close warmly (server sends markers, `persona.md` holds the wording; the early final turn from the token check comes with the token check)
+- [x] Turn instructions: at turn 10, tell Bubo to mention the session is nearly up and steer to a big-picture wrap-up; on turn 12, tell her to close warmly (server sends markers, `persona.md` holds the wording; the early final turn from the token check comes with T1)
 - [x] Session routes: start a session, send a candidate turn, End Interview; enforce the turn cap, busy flag, and message length; retry a failed interviewer call once, then end with `interviewer_failed` (full replies, no streaming yet)
 - [x] Tests for turn cap, turn-10 and final-turn instructions, message length, and failure paths (before UI work)
 - [x] Implement landing page with a single Start button
@@ -36,7 +36,7 @@ Open tasks have IDs (T1, T2, ...). Put the ID first in the commit message, chat 
 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
 
-- [ ] **T1** Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
+- [x] **T1** Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
 - [ ] **T2** Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both; a turn whose response is lost in transit must not count twice when resent
 - [ ] **T3** Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
 - [ ] **T4** Pause screen: hide transcript, disable input, stop check-in timer; Resume and End Interview; limit stated on pause, notice at 25 minutes
@@ -57,6 +57,8 @@ Small tasks to pick up between plan items. Not blocking v1.
 - [ ] **T14** Nice to have: move all candidate-facing text, including button text, headings, and labels, into a `shared/strings/` folder grouped by kind (buttons, headings, labels, notices, errors). Changes the AGENTS.md rule that headings, labels, and button text stay in the components, and the 2026-10-29 strings entry in `docs/decisions.md`; update both. Estimate: 1.5 to 2 hours, mostly imports and test lookups.
 
 ## Later (not v1)
+
+- Token-cap notices outside the chat. A real interviewer has no token limit, so the token-cap wrap-up and close may break the interview's flow when they come from Bubo. Show a UI notice instead, for both gaps in `docs/decisions.md` (2026-10-30, token check): an early wrap-up when later turns turn out short, and a billed retry that skips the wrap-up or ends with no reply. Revisit with the v2 user flow and views.
 
 - Login before sharing a hosted version. Until then, testers run it locally with their own API key (`docs/decisions.md`, 2026-10-30 sharing entry). Hosting also needs per-account session limits and a spend cap.
 

@@ -16,6 +16,11 @@ export interface Session {
   id: string;
   status: SessionStatus;
   endReason: EndReason | null;
+  // The turns that get the wrap-up and final-turn markers. They start at WRAP_UP_TURN and
+  // MAX_CANDIDATE_TURNS; the token check moves one to the newest turn when the token cap
+  // will end the interview first.
+  wrapUpTurn: number;
+  finalTurn: number;
   // What the candidate saw, opening reply included. Request-only text (the kickoff
   // message, turn instructions) is added when building each call, never stored here.
   transcript: ChatMessage[];

@@ -55,5 +55,5 @@ MESSAGES (rebuilt from the transcript every call)
 
 - No code links a marker to its rule. The marker string in `request.ts` and the bullet in `persona.md` must match exactly.
 - The transcript stores messages as typed. Notes and markers are added each time a request is built.
-- Markers depend only on the turn number. At turn 11, turn 10 still carries `[Wrap-up]`, so the cached prefix is unchanged.
+- Markers depend only on the turn number and the session's `wrapUpTurn` and `finalTurn` (turns 10 and 12 unless the token check moves one to the newest turn). A turn already sent never changes: at turn 11, turn 10 still carries `[Wrap-up]`, so the cached prefix is unchanged.
 - The persona's "Markers" rule tells Bubo to act only on a marker in the newest message, so she doesn't warn twice.

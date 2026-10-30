@@ -19,6 +19,11 @@ export const WRAP_UP_TURN = 10;
 export const INTERVIEWER_MAX_TOKENS = 400;
 export const FEEDBACK_MAX_TOKENS = 1500;
 
+// Every call in a session counts toward the cap: input and output, cached or not.
+// An interviewer call goes out only if this much is still left for the feedback call.
+export const SESSION_TOKEN_CAP = 130_000;
+export const FEEDBACK_RESERVE_TOKENS = 16_000;
+
 // Thinking is off so the whole max_tokens budget goes to the visible reply.
 // Effort still shapes length and depth when thinking is off.
 export const INTERVIEWER_EFFORT = "low";

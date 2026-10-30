@@ -42,6 +42,22 @@ describe("turnNote", () => {
   });
 });
 
+describe("turnNote with markers moved by the token check", () => {
+  it("puts each marker on the turn the session names, and nowhere else", () => {
+    const markers = { wrapUpTurn: 4, finalTurn: 5 };
+
+    expect(turnNote(4, markers)).toBe(`[Turn 4 of ${MAX_CANDIDATE_TURNS}] ${WRAP_UP_MARKER}`);
+    expect(turnNote(5, markers)).toBe(`[Turn 5 of ${MAX_CANDIDATE_TURNS}] ${FINAL_TURN_MARKER}`);
+    expect(turnNote(WRAP_UP_TURN, markers)).not.toContain(WRAP_UP_MARKER);
+  });
+
+  it("lets the final-turn marker win when both name the same turn", () => {
+    expect(turnNote(6, { wrapUpTurn: 6, finalTurn: 6 })).toBe(
+      `[Turn 6 of ${MAX_CANDIDATE_TURNS}] ${FINAL_TURN_MARKER}`,
+    );
+  });
+});
+
 describe("buildInterviewerRequest", () => {
   it("sends only the kickoff for the opening call", () => {
     const request = buildInterviewerRequest("system prompt", []);
@@ -105,5 +121,18 @@ describe("buildInterviewerRequest", () => {
     const after = buildInterviewerRequest("s", transcriptWithTurns(WRAP_UP_TURN + 1)).messages;
 
     expect(after.slice(0, before.length)).toEqual(before);
+  });
+
+  it("uses the session's marker turns for every candidate message", () => {
+    const markers = { wrapUpTurn: 2, finalTurn: 3 };
+
+    const { messages } = buildInterviewerRequest("s", transcriptWithTurns(3), markers);
+    const notes = messages.filter((m) => m.role === "user").slice(1).map((m) => m.content);
+
+    expect(notes).toEqual([
+      `${turnNote(1, markers)}\n\nMessage 1`,
+      `[Turn 2 of ${MAX_CANDIDATE_TURNS}] ${WRAP_UP_MARKER}\n\nMessage 2`,
+      `[Turn 3 of ${MAX_CANDIDATE_TURNS}] ${FINAL_TURN_MARKER}\n\nMessage 3`,
+    ]);
   });
 });

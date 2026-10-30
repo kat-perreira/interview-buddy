@@ -5,6 +5,8 @@ import {
   MOCK_FAIL,
   MOCK_FEEDBACK_FAIL,
   MOCK_FEEDBACK_FAIL_ONCE,
+  MOCK_HEAVY,
+  MOCK_HEAVY_TOKENS,
   MOCK_REFUSE,
   createMockModelClient,
   mockFeedback,
@@ -33,6 +35,25 @@ describe("createMockModelClient", () => {
     const result = await client.complete(request("efgh"));
 
     expect(result.usage).toEqual({ input: 2, output: 302, cacheWrite: 0, cacheRead: 0 });
+  });
+
+  it("adds heavy input tokens to every call whose request holds the heavy trigger", async () => {
+    const client = createMockModelClient({ steps: [{ text: "a" }, { text: "b" }] });
+    const heavy: ModelRequest = {
+      kind: "interviewer",
+      system: "abcd",
+      messages: [
+        { role: "user", content: `big doc ${MOCK_HEAVY}` },
+        { role: "assistant", content: "ok" },
+        { role: "user", content: "next" },
+      ],
+    };
+
+    const plain = await client.complete(request("efgh"));
+    const later = await client.complete(heavy);
+
+    expect(plain.usage.input).toBe(2);
+    expect(later.usage.input).toBeGreaterThan(MOCK_HEAVY_TOKENS);
   });
 
   it("lets a step set usage exactly", async () => {

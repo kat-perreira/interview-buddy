@@ -1,4 +1,5 @@
 import { PAUSED_SESSION_TTL_MS, SESSION_TTL_MS } from "../config.ts";
+import { DEFAULT_MARKER_TURNS } from "./request.ts";
 import type { Session } from "./types.ts";
 
 export interface SessionStore {
@@ -51,6 +52,7 @@ export function createSessionStore(
         tokensUsed: 0,
         estimatedCost: 0,
         lastCall: null,
+        ...DEFAULT_MARKER_TURNS,
         busy: false,
         abortCall: null,
         pausedAt: null,

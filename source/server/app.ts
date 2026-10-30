@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
-import { ERROR_MESSAGES, type ErrorCode } from "../shared/strings.ts";
+import { ERROR_MESSAGES, UI_MESSAGES, type ErrorCode } from "../shared/strings.ts";
 import { MAX_CANDIDATE_TURNS } from "./config.ts";
 import type { ModelClient } from "./model/types.ts";
+import { turnsThatFit } from "./session/budget.ts";
 import { callFeedback } from "./session/feedback.ts";
 import { callInterviewer } from "./session/interviewer.ts";
 import type { SessionStore } from "./session/store.ts";
@@ -98,9 +99,24 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     if (!message) return c.json(error("empty_message"), 400);
     if (messageLength(message) > MAX_MESSAGE_CHARS) return c.json(error("too_long"), 400);
 
+    // The token check (docs/spec.md, Limits), estimated before the message is added.
+    const turnsLeft = turnsThatFit(session, message);
+
     session.transcript.push({ role: "user", content: message });
     session.candidateTurns++;
     store.touch(session);
+    const turn = session.candidateTurns;
+
+    // Not even this turn fits. Rare: the turn before is normally marked final first, but a
+    // billed retry can use up the room. The message stays and counts, as when a reply fails.
+    if (turnsLeft === 0) {
+      endInterview(session, "token_cap");
+      return c.json({ reply: null, message: UI_MESSAGES.length_limit, ...state(session) });
+    }
+    // The token cap will end the interview before the turn cap: move the markers earlier.
+    // The wrap-up moves only if it hasn't been given yet, so Bubo doesn't warn twice.
+    if (turnsLeft === 1) session.finalTurn = Math.min(session.finalTurn, turn);
+    if (turnsLeft === 2 && session.wrapUpTurn > turn) session.wrapUpTurn = turn;
 
     const reply = await withBusy(session, (signal) =>
       callInterviewer(modelClient, systemPrompt, session, signal),
@@ -117,7 +133,9 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     }
 
     session.transcript.push({ role: "assistant", content: reply });
-    if (session.candidateTurns >= MAX_CANDIDATE_TURNS) endInterview(session, "turn_cap");
+    if (turn >= session.finalTurn) {
+      endInterview(session, session.finalTurn < MAX_CANDIDATE_TURNS ? "token_cap" : "turn_cap");
+    }
     return c.json({ reply, ...state(session) });
   });
 

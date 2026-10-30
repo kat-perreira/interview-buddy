@@ -32,7 +32,7 @@ Each path sets the session's `endReason`, then feedback runs.
 | --- | --- |
 | `candidate` | End Interview, confirmed (available anywhere in `active`; a reply in progress is cancelled and dropped) |
 | `turn_cap` | Bubo's closing reply to turn 12 finishes |
-| `token_cap` | The token check before a call fails |
+| `token_cap` | Bubo's closing reply to an early final turn finishes, or (rarely) the token check finds no room for the turn at all; then the unanswered message stays and counts as a turn |
 | `paused_too_long` | 30 minutes in `paused` |
 | `interviewer_failed` | An interviewer call fails twice (error, timeout, refusal, or empty reply); the unanswered message stays and counts as a turn |
 
@@ -132,7 +132,8 @@ The server adds a turn note to every candidate message, with a marker on the tur
 | Turn 10 | `[Turn 10 of 12]` and the wrap-up marker | Mentions the session is nearly up and steers to a big-picture wrap-up |
 | Turn 11 | `[Turn 11 of 12]` | Interviews as usual; the turn-10 wrap-up is already in the conversation |
 | Turn 12 | `[Turn 12 of 12]` and the final-turn marker | Closes warmly, asks nothing new; then input locks and feedback starts |
-| Early final turn (later) | The final-turn marker, when the token check shows this is the last turn that fits | Same as turn 12 |
+| Early wrap-up | The wrap-up marker instead of on turn 10, when the token check shows one more turn fits after this one | Same as turn 10 |
+| Early final turn | The final-turn marker instead of on turn 12, when the token check shows this is the last turn that fits | Same as turn 12; then the interview ends with `token_cap` |
 
 ## Inside a turn
 

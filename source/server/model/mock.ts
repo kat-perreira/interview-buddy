@@ -20,6 +20,10 @@ export const MOCK_FAIL = "[mock:fail]";
 export const MOCK_REFUSE = "[mock:refuse]";
 export const MOCK_FEEDBACK_FAIL = "[mock:feedback-fail]";
 export const MOCK_FEEDBACK_FAIL_ONCE = "[mock:feedback-fail-once]";
+// Every call whose request holds this, anywhere, reports this many more input tokens, as if
+// a long document stayed in the conversation. Brings the token cap within a few turns.
+export const MOCK_HEAVY = "[mock:heavy]";
+export const MOCK_HEAVY_TOKENS = 12_000;
 
 // `log` prints one [mock] line per call to the server console (dev mock mode only).
 export function createMockModelClient(
@@ -33,7 +37,9 @@ export function createMockModelClient(
     async complete(request, { onText, signal } = {}) {
       calls.push(request);
       signal?.throwIfAborted();
-      const input = estimateTokens(request.system + request.messages.map((m) => m.content).join(""));
+      const requestText = request.system + request.messages.map((m) => m.content).join("");
+      const heavy = requestText.includes(MOCK_HEAVY) ? MOCK_HEAVY_TOKENS : 0;
+      const input = estimateTokens(requestText) + heavy;
       const turn = describeTurn(request);
       const log = (outcome: string) => {
         if (options.log) {

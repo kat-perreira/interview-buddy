@@ -6,14 +6,26 @@ import {
 } from "@anthropic-ai/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FEEDBACK_SCHEMA } from "../shared/feedback.ts";
-import { ERROR_MESSAGES } from "../shared/strings.ts";
+import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
 import { createApp } from "./app.ts";
 import { MAX_MESSAGE_CHARS } from "../shared/limits.ts";
-import { MAX_CANDIDATE_TURNS } from "./config.ts";
+import {
+  FEEDBACK_RESERVE_TOKENS,
+  MAX_CANDIDATE_TURNS,
+  SESSION_TOKEN_CAP,
+  WRAP_UP_TURN,
+} from "./config.ts";
 import { createMockModelClient, mockFeedback, type MockStep } from "./model/mock.ts";
 import type { ModelClient } from "./model/types.ts";
-import { KICKOFF_MESSAGE, turnNote } from "./session/request.ts";
+import { turnsThatFit } from "./session/budget.ts";
+import {
+  FINAL_TURN_MARKER,
+  KICKOFF_MESSAGE,
+  WRAP_UP_MARKER,
+  turnNote,
+} from "./session/request.ts";
 import { createSessionStore } from "./session/store.ts";
+import type { Session } from "./session/types.ts";
 
 const SYSTEM = "system prompt";
 const FEEDBACK_SYSTEM = "feedback prompt";
@@ -84,6 +96,14 @@ function createHeldClient() {
     },
     release: () => release(),
   };
+}
+
+// Sets tokensUsed so that exactly `turns` turns fit for `message`, by the token check itself.
+// Steps of 100 land on the count asked for: the thresholds are thousands of tokens apart.
+function leaveRoomFor(session: Session, message: string, turns: number): void {
+  session.tokensUsed = SESSION_TOKEN_CAP;
+  while (turnsThatFit(session, message) < turns) session.tokensUsed -= 100;
+  expect(turnsThatFit(session, message)).toBe(turns);
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -340,6 +360,112 @@ describe("POST /api/sessions/:id/turns", () => {
 
     expect(body).toMatchObject({ reply: "A long", status: "active" });
     expect(warn.mock.calls[0]?.[0]).toContain("reply hit max_tokens");
+  });
+});
+
+describe("token check before each turn", () => {
+  const lastCall = { input: 5000, output: 300 };
+
+  it("marks the last turn that fits final, then ends with token_cap after Bubo's reply", async () => {
+    const { app, store, mock } = setup();
+    const id = await start(app);
+    const session = store.get(id)!;
+    session.lastCall = lastCall;
+    leaveRoomFor(session, "Hello", 1);
+
+    const body = await (await sendTurn(app, id, "Hello")).json();
+
+    expect(mock.calls[1]?.messages.at(-1)?.content).toBe(
+      `[Turn 1 of ${MAX_CANDIDATE_TURNS}] ${FINAL_TURN_MARKER}\n\nHello`,
+    );
+    expect(body).toMatchObject({ turn: 1, status: "feedback_pending", endReason: "token_cap" });
+    expect(body.reply).toEqual(expect.any(String));
+    expect((await getFeedback(app, id)).status).toBe(200);
+  });
+
+  it("moves the wrap-up to the turn before the last that fits, and gives it once", async () => {
+    const { app, store, mock } = setup();
+    const id = await start(app);
+    const session = store.get(id)!;
+    session.lastCall = lastCall;
+    leaveRoomFor(session, "Hello", 2);
+
+    const first = await (await sendTurn(app, id, "Hello")).json();
+    // The mock's real usage is far below the worst case, so more turns fit after all.
+    for (let turn = 2; turn <= WRAP_UP_TURN; turn++) await sendTurn(app, id, `Message ${turn}`);
+
+    expect(first).toMatchObject({ turn: 1, status: "active" });
+    const notes = mock.calls.slice(1).map((c) => c.messages.at(-1)?.content ?? "");
+    expect(notes[0]).toContain(WRAP_UP_MARKER);
+    expect(notes.filter((note) => note.includes(WRAP_UP_MARKER))).toHaveLength(1);
+  });
+
+  it("ends with token_cap and no model call when not even this turn fits", async () => {
+    const { app, store, mock } = setup();
+    const id = await start(app);
+    const session = store.get(id)!;
+    session.lastCall = lastCall;
+    leaveRoomFor(session, "Hello", 0);
+
+    const body = await (await sendTurn(app, id, "Hello")).json();
+
+    expect(body).toEqual({
+      reply: null,
+      message: UI_MESSAGES.length_limit,
+      turn: 1,
+      status: "feedback_pending",
+      endReason: "token_cap",
+    });
+    expect(mock.calls).toHaveLength(1);
+    expect(session.transcript.at(-1)).toEqual({ role: "user", content: "Hello" });
+    expect((await getFeedback(app, id)).status).toBe(200);
+  });
+
+  it("skips the retry when a billed failed attempt leaves no room for it", async () => {
+    const { app, store, mock } = setup({
+      steps: [{ text: "Opening." }, { text: "", stopReason: "refusal", usage: { input: 5000 } }],
+    });
+    const id = await start(app);
+    const session = store.get(id)!;
+    session.lastCall = lastCall;
+    leaveRoomFor(session, "Hello", 1);
+
+    const body = await (await sendTurn(app, id, "Hello")).json();
+
+    expect(body).toMatchObject({ reply: null, endReason: "interviewer_failed" });
+    expect(mock.calls).toHaveLength(2);
+    expect(warn.mock.calls.at(-1)?.[0]).toContain("no retry, it would not fit under the token cap");
+  });
+
+  it("still retries a refusal when the retry fits", async () => {
+    const { app } = setup({
+      steps: [{ text: "Opening." }, { text: "", stopReason: "refusal" }, { text: "Reply." }],
+    });
+    const id = await start(app);
+
+    const body = await (await sendTurn(app, id, "Hello")).json();
+
+    expect(body).toMatchObject({ reply: "Reply.", status: "active" });
+  });
+
+  it("never goes past the cap, feedback included, with full-length messages", async () => {
+    const { app, store, mock } = setup();
+    const id = await start(app);
+    const session = store.get(id)!;
+    // Leaves room for several turns, but fewer than the turn cap.
+    session.tokensUsed = SESSION_TOKEN_CAP - FEEDBACK_RESERVE_TOKENS - 25_000;
+
+    let body;
+    do body = await (await sendTurn(app, id, "a".repeat(MAX_MESSAGE_CHARS))).json();
+    while (body.status === "active");
+    const feedback = await getFeedback(app, id);
+
+    expect(body).toMatchObject({ status: "feedback_pending", endReason: "token_cap" });
+    expect(body.reply).toEqual(expect.any(String));
+    expect(body.turn).toBeLessThan(MAX_CANDIDATE_TURNS);
+    expect(mock.calls.at(-2)?.messages.at(-1)?.content).toContain(FINAL_TURN_MARKER);
+    expect(feedback.status).toBe(200);
+    expect(session.tokensUsed).toBeLessThanOrEqual(SESSION_TOKEN_CAP);
   });
 });
 

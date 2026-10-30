@@ -5,7 +5,8 @@ import { describeError, recordUsage } from "./calls.ts";
 import type { EndReason, Session } from "./types.ts";
 
 // Request-only facts about how the interview ended. What to do with them is in feedback.md.
-function endNote(reason: EndReason | null, turns: number): string {
+// `unanswered`: the transcript ends on a candidate message, so Bubo never replied to it.
+function endNote(reason: EndReason | null, turns: number, unanswered: boolean): string {
   const after = `after ${turns} of ${MAX_CANDIDATE_TURNS} candidate turns`;
   switch (reason) {
     case "turn_cap":
@@ -13,7 +14,10 @@ function endNote(reason: EndReason | null, turns: number): string {
     case "candidate":
       return `The candidate ended the interview ${after}.`;
     case "token_cap":
-      return `The interview reached its length limit ${after}.`;
+      // Normally Bubo closes first. With no room left for a reply, the message stands alone.
+      return unanswered
+        ? `The interview reached its length limit ${after}. The candidate's last message got no reply.`
+        : `The interview reached its length limit ${after}.`;
     case "paused_too_long":
       return `The interview ended ${after}, when a pause ran past its limit.`;
     case "interviewer_failed":
@@ -31,13 +35,14 @@ export function buildFeedbackRequest(system: string, session: Session): ModelReq
     .map((m) => `${m.role === "assistant" ? "Interviewer (Bubo)" : "Candidate"}: ${m.content}`)
     .map((line) => line.replace(/<\/\s*transcript\s*>/gi, "<\\/transcript>"))
     .join("\n\n");
+  const unanswered = session.transcript.at(-1)?.role === "user";
   return {
     kind: "feedback",
     system,
     messages: [
       {
         role: "user",
-        content: `<transcript>\n${transcript}\n</transcript>\n\n${endNote(session.endReason, session.candidateTurns)}`,
+        content: `<transcript>\n${transcript}\n</transcript>\n\n${endNote(session.endReason, session.candidateTurns, unanswered)}`,
       },
     ],
     schema: FEEDBACK_SCHEMA,

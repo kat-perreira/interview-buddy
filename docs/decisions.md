@@ -203,6 +203,25 @@ Short log of why we chose X. Newest last.
 
 **Why:** A hosted app on one key means every visitor's sessions bill Kat, and without accounts there's no good way to limit that per person. Running locally with your own key needs no code change and keeps the spec's "no accounts" rule for v1.
 
+## 2026-10-30 — token check: how it moves the markers, retries, and a turn that doesn't fit
+
+**Choice:**
+- Before each candidate turn, the server counts how many turns still fit under the cap with the feedback reserve: this turn by the 2026-10-28 estimate, later turns assumed worst case (full-length message and reply). Code in `source/server/session/budget.ts`.
+- Exactly 2 fit: this turn gets the wrap-up marker, unless the wrap-up was already given. Exactly 1 fits: this turn gets the final-turn marker, and the interview ends with `token_cap` after Bubo's reply. The turn-10 and turn-12 defaults are replaced, not added to, so Bubo warns once and closes once.
+- None fit: the interview ends with `token_cap` before any call. Like `interviewer_failed`, the message stays and counts as a turn, and the candidate sees the `length_limit` notice. Normally unreachable, since the turn before is marked final first.
+- A retry after a billed failed attempt (refusal or empty reply) is checked too, and skipped if it doesn't fit. The interview then ends with `interviewer_failed`.
+- The opening isn't checked: it's the first call, a few thousand tokens.
+- The session stores which turns carry the markers (`wrapUpTurn`, `finalTurn`), so earlier turn notes never change and the cached prefix still matches.
+
+- When no room is left for a reply, the feedback call is told the candidate's last message got no reply, as with `interviewer_failed`.
+- Known gaps, accepted for v1 (Kat, 2026-10-30):
+  - Retry Feedback isn't checked against the cap. The reserve covers one feedback call, so a billed failure plus a retry can pass 130k. Monitor `[usage]` lines; revisit only if cost becomes an issue.
+  - The wrap-up can come early: later turns are assumed full length, so Bubo may say the session is nearly up and the interview goes on a few more turns.
+  - A billed retry can use up the room, so the next turn jumps straight to the final turn with no wrap-up, or (rarely) ends with no reply. Both gaps are listed for v2 in `docs/plan.md` (Later).
+  - The ÷ 4 message estimate assumes English. v1 is English only, so the fixed 16k reserve holds.
+
+**Why:** Assuming worst-case later turns means the count errs low, so the interview can end a turn early but never past the cap (success criterion 4). Moving the wrap-up keeps the "warned before it ends" rule from the 2026-10-28 entry. Without the retry check, a refused attempt plus its retry could spend the reserve.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

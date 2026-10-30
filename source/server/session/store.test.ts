@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PAUSED_SESSION_TTL_MS, PAUSE_LIMIT_MS, SESSION_TTL_MS } from "../config.ts";
+import {
+  MAX_CANDIDATE_TURNS,
+  PAUSED_SESSION_TTL_MS,
+  PAUSE_LIMIT_MS,
+  SESSION_TTL_MS,
+  WRAP_UP_TURN,
+} from "../config.ts";
 import { createSessionStore } from "./store.ts";
 
 // A clock the test moves by hand.
@@ -26,6 +32,8 @@ describe("createSessionStore", () => {
       tokensUsed: 0,
       estimatedCost: 0,
       lastCall: null,
+      wrapUpTurn: WRAP_UP_TURN,
+      finalTurn: MAX_CANDIDATE_TURNS,
       busy: false,
       abortCall: null,
       pausedAt: null,
