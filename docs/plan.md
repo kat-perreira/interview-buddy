@@ -37,7 +37,10 @@ Open tasks have IDs (T1, T2, ...). Put the ID first in the commit message, chat 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
 
 - [x] **T1** Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
-- [ ] **T2** Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both; a turn whose response is lost in transit must not count twice when resent
+- **T2** Split on 2026-10-30 into T15, T16, and T17 (too big to review as one change).
+- [x] **T15** Combine the opening and turn routes' reply handling into one helper, no behavior change. The token check (`turnsThatFit`, marker moves, `token_cap` end) stays in the turn route. Estimate: 30 to 45 minutes.
+- [ ] **T16** Stream interviewer replies from Hono to the client over SSE. A retry after a partly streamed failed attempt clears the partial text; End Interview mid-stream still cancels the call. Estimate: 2 to 3 hours.
+- [ ] **T17** A turn whose response is lost in transit (or whose stream drops) must not count twice when resent: the client sends a turn ID, the server keeps the last turn's result. Estimate: about 1 hour.
 - [ ] **T3** Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
 - [ ] **T4** Pause screen: hide transcript, disable input, stop check-in timer; Resume and End Interview; limit stated on pause, notice at 25 minutes
 - [ ] **T5** Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)

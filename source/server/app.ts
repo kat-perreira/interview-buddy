@@ -49,6 +49,24 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     }
   };
 
+  // Gets Bubo's next reply, for the opening and each turn, and adds it to the transcript.
+  // `dropped`: the candidate pressed End Interview while Bubo was replying. `failed`: every
+  // attempt failed. Ending the interview (failure or cap) is the route's call.
+  const getReply = async (
+    session: Session,
+  ): Promise<{ kind: "reply"; reply: string } | { kind: "dropped" } | { kind: "failed" }> => {
+    const reply = await withBusy(session, (signal) =>
+      callInterviewer(modelClient, systemPrompt, session, signal),
+    );
+    store.touch(session);
+
+    if (session.status !== "active") return { kind: "dropped" };
+    if (reply === null) return { kind: "failed" };
+
+    session.transcript.push({ role: "assistant", content: reply });
+    return { kind: "reply", reply };
+  };
+
   // Where the session stands after a request, for the client to act on.
   const state = (session: Session) => ({
     turn: session.candidateTurns,
@@ -72,16 +90,17 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
   // If the opening fails twice there is nothing to grade, so the session is discarded.
   app.post("/sessions", async (c) => {
     const session = store.create();
-    // No busy flag needed: the client has no session ID until this returns.
-    const reply = await callInterviewer(modelClient, systemPrompt, session);
+    // The busy flag getReply sets has no effect here: the client has no session ID until this
+    // returns, so nothing can end the session or send a turn meanwhile.
+    const result = await getReply(session);
 
-    if (reply === null) {
+    // `dropped` can't happen yet (nothing can end a session without its ID), so it's
+    // treated as a failure: no opening means no interview.
+    if (result.kind !== "reply") {
       store.delete(session.id);
       return c.json(error("start_failed"), 502);
     }
-    session.transcript.push({ role: "assistant", content: reply });
-    store.touch(session);
-    return c.json({ sessionId: session.id, reply, ...state(session) }, 201);
+    return c.json({ sessionId: session.id, reply: result.reply, ...state(session) }, 201);
   });
 
   // Send one candidate message and get Bubo's reply.
@@ -118,25 +137,21 @@ export function createApp({ modelClient, store, systemPrompt, feedbackPrompt }: 
     if (turnsLeft === 1) session.finalTurn = Math.min(session.finalTurn, turn);
     if (turnsLeft === 2 && session.wrapUpTurn > turn) session.wrapUpTurn = turn;
 
-    const reply = await withBusy(session, (signal) =>
-      callInterviewer(modelClient, systemPrompt, session, signal),
-    );
-    store.touch(session);
+    const result = await getReply(session);
 
     // The candidate pressed End Interview while Bubo was replying: drop the reply.
-    if (session.status !== "active") return c.json({ reply: null, ...state(session) });
+    if (result.kind === "dropped") return c.json({ reply: null, ...state(session) });
 
     // Failed twice: end here. The unanswered message stays and counts as a turn.
-    if (reply === null) {
+    if (result.kind === "failed") {
       endInterview(session, "interviewer_failed");
       return c.json({ reply: null, message: ERROR_MESSAGES.interviewer_failed, ...state(session) });
     }
 
-    session.transcript.push({ role: "assistant", content: reply });
     if (turn >= session.finalTurn) {
       endInterview(session, session.finalTurn < MAX_CANDIDATE_TURNS ? "token_cap" : "turn_cap");
     }
-    return c.json({ reply, ...state(session) });
+    return c.json({ reply: result.reply, ...state(session) });
   });
 
   // End Interview. Always allowed while active, even mid-reply (the client confirms first).
