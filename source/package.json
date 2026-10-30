@@ -4,6 +4,7 @@
     "dev": "concurrently -n server,client \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "tsx watch --include \"../prompts/**/*.md\" --env-file-if-exists=.env server/index.ts",
     "dev:client": "vite",
+    "dev:session": "tsx --env-file-if-exists=.env dev/run-session.ts",
     "build": "vite build",
     "start": "NODE_ENV=production tsx --env-file-if-exists=.env server/index.ts",
     "test": "vitest run",

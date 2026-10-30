@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CANDIDATE_SCRIPT } from "../dev/candidate-script.ts";
 import { mockFeedback } from "../server/model/mock.ts";
 import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
 import {
@@ -467,6 +468,29 @@ describe("Session", () => {
     renderSession();
     await send("Hello?");
     expect(leavePageWarns()).toBe(false);
+  });
+
+  it("fills the next canned answer in dev builds, one per sent turn", async () => {
+    sendTurnMock.mockResolvedValue({ ok: true, reply: "Go on.", ended: false, message: null });
+    renderSession();
+    const input = screen.getByLabelText<HTMLTextAreaElement>("Your response");
+
+    fireEvent.click(screen.getByRole("button", { name: "Fill Next Answer" }));
+    expect(input.value).toBe(CANDIDATE_SCRIPT[0]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Fill Next Answer" }));
+    expect(input.value).toBe(CANDIDATE_SCRIPT[1]);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("has no Fill Next Answer button outside dev builds", () => {
+    vi.stubEnv("DEV", false);
+    renderSession();
+    expect(screen.queryByRole("button", { name: "Fill Next Answer" })).toBeNull();
+    vi.unstubAllEnvs();
   });
 
   it("keeps warning before leaving when only a send failed", async () => {

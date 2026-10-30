@@ -1,5 +1,5 @@
 import type { ModelClient } from "../model/types.ts";
-import { describeError, recordUsage } from "./calls.ts";
+import { callLabel, describeError, recordUsage } from "./calls.ts";
 import { buildInterviewerRequest } from "./request.ts";
 import type { Session } from "./types.ts";
 
@@ -25,7 +25,7 @@ export async function callInterviewer(
     if (attempt > 1 && session.status !== "active") return null;
     try {
       const result = await modelClient.complete(request, { signal });
-      recordUsage(session, result.usage);
+      recordUsage(session, "interviewer", result);
       const text = result.text.trim();
       if (result.stopReason === "refusal") warn(session, attempt, "refusal");
       else if (!text) warn(session, attempt, "empty reply");
@@ -44,8 +44,7 @@ export async function callInterviewer(
 
 // Console only for now (no monitoring yet). Never logs message text.
 function warn(session: Session, attempt: number, reason: string): void {
-  const turn = session.candidateTurns === 0 ? "opening" : `turn ${session.candidateTurns}`;
   console.warn(
-    `[interviewer] session ${session.id}, ${turn}, attempt ${attempt} of ${MAX_ATTEMPTS}: ${reason}`,
+    `[interviewer] session ${session.id}, ${callLabel(session, "interviewer")}, attempt ${attempt} of ${MAX_ATTEMPTS}: ${reason}`,
   );
 }

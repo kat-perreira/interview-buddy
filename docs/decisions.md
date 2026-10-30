@@ -197,6 +197,12 @@ Short log of why we chose X. Newest last.
 
 **Why:** Kat's call, made while fixing the End Interview button's size.
 
+## 2026-10-30 — sharing: testers bring their own key; login before any hosted version
+
+**Choice:** v1 stays one local user. Anyone else who tries it runs it locally with their own `ANTHROPIC_API_KEY` in their own `.env`. Nothing is hosted on Kat's key. Login comes before anything is shared out as a hosted app, and is not v1 work.
+
+**Why:** A hosted app on one key means every visitor's sessions bill Kat, and without accounts there's no good way to limit that per person. Running locally with your own key needs no code change and keeps the spec's "no accounts" rule for v1.
+
 ## Open (not decided)
 
 - How to evaluate interviewer quality beyond a few manual session reviews

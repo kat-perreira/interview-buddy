@@ -3,6 +3,14 @@
 
 export const MODEL_ID = "claude-haiku-5-5";
 
+// USD per million tokens, used only for the cost estimate in the server console.
+// The Console's usage page is the real bill. Indexed by MODEL_ID, so a model with no
+// prices here fails typecheck.
+export const PRICE_PER_MTOK = {
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheWrite: 0.125, cacheRead: 0.01 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cacheWrite: 2.5, cacheRead: 0.2 },
+}[MODEL_ID];
+
 // The interview ends after Bubo replies to this many candidate messages.
 export const MAX_CANDIDATE_TURNS = 12;
 // Bubo's reply to this turn warns that the session is nearly up.

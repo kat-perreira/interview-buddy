@@ -24,6 +24,7 @@ describe("createSessionStore", () => {
       transcript: [],
       candidateTurns: 0,
       tokensUsed: 0,
+      estimatedCost: 0,
       lastCall: null,
       busy: false,
       abortCall: null,

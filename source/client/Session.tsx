@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { CANDIDATE_SCRIPT } from "../dev/candidate-script.ts";
 import type { Feedback } from "../shared/feedback.ts";
 import { MAX_MESSAGE_CHARS, messageLength } from "../shared/limits.ts";
 import { ERROR_MESSAGES, UI_MESSAGES } from "../shared/strings.ts";
@@ -82,6 +83,10 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
 
   const length = messageLength(draft.trim());
   const tooLong = length > MAX_MESSAGE_CHARS;
+  // Dev builds only: the canned answer for the next turn (dev/candidate-script.ts).
+  const nextScripted = import.meta.env.DEV
+    ? CANDIDATE_SCRIPT[turns.filter((t) => t.speaker === "you" && !t.notSent).length]
+    : undefined;
 
   function lockInput() {
     endedRef.current = true;
@@ -304,6 +309,19 @@ export function Session({ sessionId, opening, onNewInterview }: Props) {
               <button type="button" onClick={() => void end()}>
                 End Interview
               </button>
+              {nextScripted !== undefined && (
+                <button
+                  type="button"
+                  disabled={waiting}
+                  onClick={() => {
+                    setDraft(nextScripted);
+                    // Back to the textarea, so Cmd/Ctrl+Enter sends.
+                    inputRef.current?.focus();
+                  }}
+                >
+                  Fill Next Answer
+                </button>
+              )}
             </div>
           </div>
           {tooLong && (

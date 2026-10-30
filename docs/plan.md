@@ -2,6 +2,8 @@
 
 v1 is done when the five success criteria in `docs/spec.md` pass.
 
+Open tasks have IDs (T1, T2, ...). Put the ID first in the commit message, chat title, and test notes file name, so `git log --grep T5` finds the work. IDs are never reused or renumbered: a split task gets new IDs. Finished tasks from before 2026-10-30 have none.
+
 ## Milestones
 
 - [x] **Spec** — audience, scope, non-goals, session rules, limits, feedback format (`docs/spec.md`)
@@ -34,27 +36,29 @@ v1 is done when the five success criteria in `docs/spec.md` pass.
 
 First testable loop is reached here: click through with `MODEL_CLIENT=mock`, then run real sessions.
 
-- [ ] Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
-- [ ] Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both; a turn whose response is lost in transit must not count twice when resent
-- [ ] Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
-- [ ] Pause screen: hide transcript, disable input, stop check-in timer; Resume and End Interview; limit stated on pause, notice at 25 minutes
-- [ ] Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)
-- [ ] Log the turn count to the browser console in dev builds only
-- [ ] Derive `busy` from `abortCall` in the session (one source for "a call is in flight")
-- [ ] Fit and finish, once functionality is at a high enough quality: a UI cleanup pass. Known so far: focus drops to `<body>` after Start a New Interview or Practice Again (Landing never moves focus); an expired session (`not_found`) during feedback has no button, only the "refresh the page" message. End Interview confirms with the browser's `window.confirm`; consider an in-page confirm that matches the app's tone, if there's room. The thank-you and Practice Again come after the feedback with no announcement; screen reader users only find them by reading to the end.
-- [ ] Accessibility review (manual)
-- [ ] Security review (manual)
-- [ ] Manual tone review of a few transcripts (include: does Bubo work in the turn-10 warning and final close naturally? Does she follow the pacing guide without mentioning turn numbers?)
+- [ ] **T1** Token check before each call with the feedback reserve; end with `token_cap`; final-turn marker on the last turn that fits; tests
+- [ ] **T2** Stream interviewer replies from Hono to the client; combine the opening and turn routes' reply handling into one helper while changing both; a turn whose response is lost in transit must not count twice when resent
+- [ ] **T3** Server pause and resume: record `pausedAt`, block turns while paused, end with `paused_too_long` at the pause limit; tests for the pause limit
+- [ ] **T4** Pause screen: hide transcript, disable input, stop check-in timer; Resume and End Interview; limit stated on pause, notice at 25 minutes
+- [ ] **T5** Pause check-in banners at 5 and 10 minutes without a sent message (no focus steal, dismissible, cleared on send)
+- [ ] **T6** Log the turn count to the browser console in dev builds only
+- [ ] **T7** Derive `busy` from `abortCall` in the session (one source for "a call is in flight")
+- [ ] **T8** Fit and finish, once functionality is at a high enough quality: a UI cleanup pass. Known so far: focus drops to `<body>` after Start a New Interview or Practice Again (Landing never moves focus); an expired session (`not_found`) during feedback has no button, only the "refresh the page" message. End Interview confirms with the browser's `window.confirm`; consider an in-page confirm that matches the app's tone, if there's room. The thank-you and Practice Again come after the feedback with no announcement; screen reader users only find them by reading to the end.
+- [ ] **T9** Accessibility review (manual)
+- [ ] **T10** Security review (manual)
+- [ ] **T11** Manual tone review of a few transcripts (include: does Bubo work in the turn-10 warning and final close naturally? Does she follow the pacing guide without mentioning turn numbers?)
 
 ## Cleanup
 
 Small tasks to pick up between plan items. Not blocking v1.
 
-- [ ] End the server session when the candidate leaves, instead of leaving it in memory until idle expiry (30 minutes). A route that drops the session, called from Practice Again and Start a New Interview; refresh and tab close via `pagehide` + `navigator.sendBeacon`. Tests for the route, and an update to Leaving in `docs/flow.md`. Estimate: about 1 hour (about 30 minutes without refresh and close).
-- [ ] One failure shape for the client's calls: `TurnResult` carries the error code like `EndResult` and `FeedbackResult`, with one parse helper for all three. `send()` then checks `error === "not_found"` instead of inferring expiry from `ended && !feedbackNext`, and one helper handles an expired session for send, End Interview, and feedback (today it's written three times). Worth doing before Pause adds another way to end. Estimate: about 45 minutes.
-- [ ] Nice to have: move all candidate-facing text, including button text, headings, and labels, into a `shared/strings/` folder grouped by kind (buttons, headings, labels, notices, errors). Changes the AGENTS.md rule that headings, labels, and button text stay in the components, and the 2026-10-29 strings entry in `docs/decisions.md`; update both. Estimate: 1.5 to 2 hours, mostly imports and test lookups.
+- [ ] **T12** End the server session when the candidate leaves, instead of leaving it in memory until idle expiry (30 minutes). A route that drops the session, called from Practice Again and Start a New Interview; refresh and tab close via `pagehide` + `navigator.sendBeacon`. Tests for the route, and an update to Leaving in `docs/flow.md`. Estimate: about 1 hour (about 30 minutes without refresh and close).
+- [ ] **T13** One failure shape for the client's calls: `TurnResult` carries the error code like `EndResult` and `FeedbackResult`, with one parse helper for all three. `send()` then checks `error === "not_found"` instead of inferring expiry from `ended && !feedbackNext`, and one helper handles an expired session for send, End Interview, and feedback (today it's written three times). Worth doing before Pause adds another way to end. Estimate: about 45 minutes.
+- [ ] **T14** Nice to have: move all candidate-facing text, including button text, headings, and labels, into a `shared/strings/` folder grouped by kind (buttons, headings, labels, notices, errors). Changes the AGENTS.md rule that headings, labels, and button text stay in the components, and the 2026-10-29 strings entry in `docs/decisions.md`; update both. Estimate: 1.5 to 2 hours, mostly imports and test lookups.
 
 ## Later (not v1)
+
+- Login before sharing a hosted version. Until then, testers run it locally with their own API key (`docs/decisions.md`, 2026-10-30 sharing entry). Hosting also needs per-account session limits and a spend cap.
 
 - Candidate name (and, with accounts, pronouns) so Bubo can address the candidate by name. v1 keeps the interviewer and feedback in second person.
 - Interviewer notes: a periodic notes pass that records rubric evidence with short quotes. Used for compaction (notes plus recent turns) and as the input for feedback. Could allow a higher turn limit; measure cost against a full-transcript baseline first. v1 sends the full transcript; caching keeps it cheap, and follow-ups and feedback evidence need the details.

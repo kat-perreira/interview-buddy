@@ -54,7 +54,7 @@ export async function callFeedback(
 ): Promise<Feedback | null> {
   try {
     const result = await modelClient.complete(buildFeedbackRequest(system, session));
-    recordUsage(session, result.usage);
+    recordUsage(session, "feedback", result);
     if (result.stopReason === "refusal") return fail(session, "refusal");
     if (result.stopReason === "max_tokens") return fail(session, "reply hit max_tokens");
     const json = parseJson(result.text);

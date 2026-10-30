@@ -26,6 +26,8 @@ export interface Session {
   candidateTurns: number;
   // Sum of totalTokens(usage) across every call, feedback included.
   tokensUsed: number;
+  // Estimated USD across every call, for the console only (PRICE_PER_MTOK in config.ts).
+  estimatedCost: number;
   // The previous call's input side (input + cache write + cache read) and output,
   // for the reserve estimate before the next call.
   lastCall: { input: number; output: number } | null;

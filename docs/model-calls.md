@@ -36,3 +36,4 @@ Every call uses the one model ID in `config.ts`. No sampling parameters are sent
 - Refusals are normal results, not errors. The session treats them as a failed reply.
 - Aborting the signal (End Interview mid-reply) makes the call reject. Its usage never arrives, so it isn't counted.
 - Logs never include message text, since API errors can quote it.
+- Session code logs one `[usage]` line per call that returns usage (`recordUsage` in `session/calls.ts`): session ID, which call, token counts by kind, stop reason, and the call's and session's estimated cost from `PRICE_PER_MTOK` in `config.ts`. Aborted and errored calls have no usage, so they don't log one. The estimate is for spotting trends; the Console's usage page is the real bill.

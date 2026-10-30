@@ -49,6 +49,7 @@ export function createSessionStore(
         feedback: null,
         candidateTurns: 0,
         tokensUsed: 0,
+        estimatedCost: 0,
         lastCall: null,
         busy: false,
         abortCall: null,
